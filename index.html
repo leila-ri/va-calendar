@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VA Leave Calendar — Roof Ignite</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>📅</text></svg>">
+<style>
+:root {
+  --bg:#fafaf7;--surface:#fff;--border:rgba(0,0,0,.1);--border-s:rgba(0,0,0,.18);
+  --text:#1a1a1a;--muted:#6b6b6b;--dim:#9a9a9a;
+  --accent:#534AB7;--accent-bg:#EEEDFE;
+  --danger:#A32D2D;--danger-bg:#FCEBEB;
+  --warn:#854F0B;--warn-bg:#FAEEDA;
+  --ok:#3B6D11;--ok-bg:#EAF3DE;
+  --pink-bg:#FBEAF0;--pink:#993556;
+  --info-bg:#E6F1FB;--info:#185FA5;
+  --teal:#0E6D6E;--teal-bg:#E0F5F5;
+  --r:8px;--rl:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);line-height:1.5;padding:20px 16px;min-height:100vh}
+.c{max-width:1200px;margin:0 auto}
+header{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px}
+h1{font-size:22px;font-weight:500;margin-bottom:2px}
+.sub{font-size:14px;color:var(--muted)}
+.ha{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ss{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.sd{width:8px;height:8px;border-radius:50%;background:var(--dim)}
+.sd.live{background:var(--ok)}.sd.err{background:var(--danger)}.sd.ing{background:var(--warn);animation:p 1.2s infinite}
+@keyframes p{50%{opacity:.4}}
+button{font-family:inherit;font-size:14px;padding:8px 14px;border-radius:var(--r);border:.5px solid var(--border-s);background:var(--surface);color:var(--text);cursor:pointer;transition:background .15s}
+button:hover{background:#f0f0eb}button:active{transform:scale(.98)}button:disabled{opacity:.5;cursor:not-allowed}
+.pri{background:var(--accent);color:#fff;border-color:var(--accent)}.pri:hover{background:#443d9e}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface);border:.5px solid var(--border);border-radius:var(--rl);padding:12px 16px;margin-bottom:16px}
+.nav-t{font-size:18px;font-weight:500}
+.nb{display:flex;gap:8px}.nb button{padding:6px 12px;font-size:18px;line-height:1}
+
+/* PANELS */
+.panels{display:grid;grid-template-columns:1fr 280px;gap:16px;margin-bottom:16px}
+.side{display:flex;flex-direction:column;gap:12px}
+.card{background:var(--surface);border:.5px solid var(--border);border-radius:var(--rl);padding:14px 16px}
+.card h3{font-size:14px;font-weight:500;margin-bottom:10px}
+.card-sub{font-size:12px;color:var(--muted);margin-bottom:10px}
+.sched-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px}
+.sched-name{width:60px;font-weight:500}
+.sched-days{display:flex;gap:4px}
+.sched-day{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;border:.5px solid var(--border);background:var(--surface);color:var(--muted)}
+.sched-day.off{background:var(--warn-bg);color:var(--warn);border-color:transparent}
+.sched-day.weekend-off{background:var(--accent-bg);color:var(--accent);border-color:transparent}
+
+.mgr-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#f5f5f0;border-radius:var(--r);margin-bottom:6px;font-size:13px}
+.mgr-status{font-size:11px;padding:2px 8px;border-radius:4px}
+.mgr-status.on{background:var(--ok-bg);color:var(--ok)}
+.mgr-status.off{background:var(--danger-bg);color:var(--danger)}
+.mgr-status.leave{background:var(--warn-bg);color:var(--warn)}
+
+/* CALENDAR */
+.cal{background:var(--surface);border:.5px solid var(--border);border-radius:var(--rl);overflow:hidden}
+.wk{display:grid;grid-template-columns:repeat(7,1fr);background:#f5f5f0;border-bottom:.5px solid var(--border)}
+.wd{padding:10px 8px;text-align:center;font-size:12px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.ds{display:grid;grid-template-columns:repeat(7,1fr)}
+.d{min-height:110px;border-right:.5px solid var(--border);border-bottom:.5px solid var(--border);padding:6px 7px;cursor:pointer;transition:background .1s;display:flex;flex-direction:column;gap:3px}
+.d:hover{background:#f9f9f4}.d:nth-child(7n){border-right:none}
+.dn{font-size:13px;font-weight:500}
+.d.om .dn{color:var(--dim)}.d.om{background:#fafaf5}
+.d.td .dn{background:var(--accent);color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.d.we{background:#faf9f4}.d.we.om{background:#f5f4ef}
+.d.bl{background:var(--danger-bg)}.d.ba{background:#FFF5F5}
+.b{font-size:10px;padding:2px 5px;border-radius:4px;font-weight:500;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.b.holiday-flex{background:var(--warn-bg);color:var(--warn)}
+.b.holiday-core{background:var(--accent-bg);color:var(--accent)}
+.b.blocked-flex{background:#FFF0E0;color:#9C4200}
+.b.blocked-core{background:#EDE8FC;color:#3C2A8A}
+.b.leave{background:var(--ok-bg);color:var(--ok)}
+.b.birthday{background:var(--pink-bg);color:var(--pink)}
+.b.weekend-mgr{background:var(--teal-bg);color:var(--teal)}
+.b.day-off{background:#f0f0eb;color:var(--muted);font-style:italic}
+.b.adj{background:transparent;color:var(--danger);font-style:italic;padding:0;font-size:9px}
+.leg{display:flex;flex-wrap:wrap;gap:12px;padding:10px 16px;background:#f5f5f0;border-top:.5px solid var(--border);font-size:12px}
+.li{display:flex;align-items:center;gap:6px;color:var(--muted)}
+.ld{width:12px;height:12px;border-radius:3px}
+
+/* MODAL */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:100;padding:16px}
+.mo.open{display:flex}
+.mi{background:var(--surface);border-radius:var(--rl);padding:20px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;position:relative}
+.mi h2{font-size:18px;font-weight:500;margin-bottom:4px}
+.md{font-size:14px;color:var(--muted);margin-bottom:16px}
+.ms{padding:10px 12px;border-radius:var(--r);font-size:13px;margin-bottom:16px;line-height:1.5}
+.ms.blk{background:var(--danger-bg);color:var(--danger)}
+.ms.ok{background:var(--ok-bg);color:var(--ok)}
+.el{margin-bottom:16px}
+.en{display:flex;align-items:center;gap:6px;padding:8px 10px;background:#f5f5f0;border-radius:var(--r);margin-bottom:6px;font-size:13px}
+.et{flex:1}
+.es{font-size:10px;padding:2px 6px;border-radius:3px;text-transform:uppercase;letter-spacing:.3px;flex-shrink:0}
+.es.bamboohr{background:var(--info-bg);color:var(--info)}
+.es.shared{background:var(--teal-bg);color:var(--teal)}
+.ed{background:transparent;border:none;color:var(--danger);cursor:pointer;padding:4px 8px;font-size:12px;flex-shrink:0}
+.ed:hover{background:var(--danger-bg)}
+.fg{margin-bottom:12px}
+.fg label{display:block;font-size:13px;font-weight:500;margin-bottom:6px}
+.fg input,.fg select{width:100%;padding:8px 10px;border:.5px solid var(--border-s);border-radius:var(--r);font-family:inherit;font-size:14px;background:var(--surface)}
+.fg input:focus,.fg select:focus{outline:none;border-color:var(--accent)}
+.tb{display:flex;gap:0;margin-bottom:14px;border-bottom:.5px solid var(--border)}
+.t{padding:8px 12px;font-size:13px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--muted);cursor:pointer;border-radius:0;white-space:nowrap}
+.t.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:500}
+.tc{display:none}.tc.on{display:block}
+.ma{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;padding-top:16px;border-top:.5px solid var(--border)}
+.emp{font-size:13px;color:var(--dim);text-align:center;padding:12px;font-style:italic}
+.sv{position:absolute;inset:0;background:rgba(255,255,255,.7);display:none;align-items:center;justify-content:center;z-index:10;border-radius:var(--rl);font-size:14px;color:var(--muted)}
+.sv.on{display:flex}
+.toast{position:fixed;bottom:24px;right:24px;background:#1a1a1a;color:#fff;padding:12px 18px;border-radius:var(--r);font-size:14px;z-index:200;opacity:0;transform:translateY(20px);transition:opacity .2s,transform .2s;max-width:360px}
+.toast.show{opacity:1;transform:translateY(0)}.toast.error{background:var(--danger)}.toast.success{background:var(--ok)}
+
+@media(max-width:800px){
+  .panels{grid-template-columns:1fr}
+  .d{min-height:70px;padding:4px 5px}
+  .b{font-size:9px;padding:1px 3px}
+  .nav-t{font-size:15px}
+}
+</style>
+</head>
+<body>
+<div class="c">
+
+<header>
+  <div>
+    <h1>📅 VA Leave Calendar</h1>
+    <p class="sub">Synced with BambooHR · Shared entries visible to the whole team</p>
+  </div>
+  <div class="ha">
+    <span class="ss"><span class="sd" id="sd"></span><span id="st">Not synced</span></span>
+    <button onclick="fullSync()" id="sb">Refresh</button>
+    <button onclick="window.open('https://roofignite.bamboohr.com/calendar','_blank')" class="pri">BambooHR ↗</button>
+  </div>
+</header>
+
+<div class="panels">
+  <div>
+    <div class="nav">
+      <div class="nav-t" id="ml"></div>
+      <div class="nb">
+        <button onclick="chMo(-1)">‹</button>
+        <button onclick="goNow()" style="font-size:13px;padding:6px 12px">Today</button>
+        <button onclick="chMo(1)">›</button>
+      </div>
+    </div>
+    <div class="cal">
+      <div class="wk"><div class="wd">Sun</div><div class="wd">Mon</div><div class="wd">Tue</div><div class="wd">Wed</div><div class="wd">Thu</div><div class="wd">Fri</div><div class="wd">Sat</div></div>
+      <div class="ds" id="grid"></div>
+      <div class="leg">
+        <div class="li"><span class="ld" style="background:var(--warn-bg)"></span>Flex holiday</div>
+        <div class="li"><span class="ld" style="background:var(--accent-bg)"></span>Core holiday</div>
+        <div class="li"><span class="ld" style="background:#FFF0E0"></span>Flex blocked</div>
+        <div class="li"><span class="ld" style="background:#EDE8FC"></span>Core blocked</div>
+        <div class="li"><span class="ld" style="background:var(--ok-bg)"></span>Leave</div>
+        <div class="li"><span class="ld" style="background:var(--pink-bg)"></span>Birthday</div>
+        <div class="li"><span class="ld" style="background:var(--teal-bg)"></span>Wknd mgr</div>
+        <div class="li"><span class="ld" style="background:#f0f0eb"></span>Day off</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDE PANELS -->
+  <div class="side">
+    <!-- Flex VA schedule -->
+    <div class="card">
+      <h3>Flex VA schedules</h3>
+      <p class="card-sub">Fixed days off (Tue–Fri). Core/SMM/Mgrs are off Sat–Sun.</p>
+      <div id="flex-sched"></div>
+    </div>
+
+    <!-- Weekend manager duty -->
+    <div class="card">
+      <h3>This weekend's managers</h3>
+      <p class="card-sub" id="wknd-label">Loading...</p>
+      <div id="wknd-mgrs"></div>
+    </div>
+
+    <!-- Manager leave -->
+    <div class="card">
+      <h3>Manager leave (this month)</h3>
+      <div id="mgr-leaves"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="mo" id="modal" onclick="if(event.target===this)closeM()">
+  <div class="mi">
+    <div class="sv" id="sav">Saving...</div>
+    <h2>Manage day</h2>
+    <p class="md" id="mdate"></p>
+    <div class="ms" id="mstat"></div>
+    <div class="el" id="elist"></div>
+    <div class="tb">
+      <button class="t on" data-tab="req" onclick="stab('req')">Request leave</button>
+      <button class="t" data-tab="add" onclick="stab('add')">Add entry</button>
+      <button class="t" data-tab="wk" onclick="stab('wk')" id="wktab" style="display:none">Weekend duty</button>
+    </div>
+    <div class="tc on" id="tab-req">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Submits to BambooHR. Approval happens there.</p>
+      <div class="fg"><label>Employee</label><select id="req-emp"><option>Loading...</option></select></div>
+      <div class="fg"><label>End date</label><input type="date" id="req-end"></div>
+      <button class="pri" style="width:100%" onclick="submitReq()" id="req-btn">Submit to BambooHR</button>
+    </div>
+    <div class="tc" id="tab-add">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Saved to shared Sheet — visible to everyone.</p>
+      <div class="fg"><label>Type</label><select id="add-type">
+        <option value="blocked-flex">Blocked — Flex</option>
+        <option value="blocked-core">Blocked — Core/SMM/Mgrs</option>
+        <option value="birthday">Birthday</option>
+        <option value="holiday-flex">Flex holiday</option>
+        <option value="holiday-core">Core holiday</option>
+        <option value="leave">Manual leave note</option>
+      </select></div>
+      <div class="fg"><label>Name / description</label><input id="add-name" placeholder="e.g. Peak coverage, Ann's birthday"></div>
+      <button class="pri" style="width:100%" onclick="addEntry()" id="add-btn">Add shared entry</button>
+    </div>
+    <div class="tc" id="tab-wk">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px">1 manager per weekend day. Saved to shared Sheet.</p>
+      <div class="fg"><label>Manager on duty</label><select id="wk-mgr">
+        <option value="">None</option><option>Pamela</option><option>Aica</option><option>Leila</option>
+      </select></div>
+      <button class="pri" style="width:100%" onclick="setWkMgr()" id="wk-btn">Save</button>
+    </div>
+    <div class="ma"><button onclick="closeM()">Close</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+</div>
+
+<script>
+const API = 'https://script.google.com/macros/s/AKfycbwQdE3oeV_UWrUr4i5yYo9T_kzTRHKGjx2erFl7OI27d5La1BmUEoRImUE-INyWvVTuJg/exec';
+const MO = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MANAGERS = ['Pamela','Aica','Leila'];
+
+let cY, cM, selKey;
+let bamboo={}, shared={}, roster={}, flexSched={};
+const now=new Date(); cY=now.getFullYear(); cM=now.getMonth();
+
+function dk(y,m,d){return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0')}
+function pk(k){const p=k.split('-').map(Number);return new Date(p[0],p[1]-1,p[2])}
+function entries(k){return[...(bamboo[k]||[]),...(shared[k]||[])];}
+function isHol(k){return entries(k).some(e=>e.type==='holiday-flex'||e.type==='holiday-core')}
+function isBl(k){return entries(k).some(e=>['holiday-flex','holiday-core','blocked-flex','blocked-core','leave','birthday'].includes(e.type))}
+function isAdj(y,m,d){const b=new Date(y,m,d-1),a=new Date(y,m,d+1);return isHol(dk(b.getFullYear(),b.getMonth(),b.getDate()))||isHol(dk(a.getFullYear(),a.getMonth(),a.getDate()))}
+function cntLv(y,m){let c=0;const all={};for(const k in bamboo)all[k]=[...(bamboo[k]||[])];for(const k in shared)all[k]=[...(all[k]||[]),...(shared[k]||[])];for(const k in all){const d=pk(k);if(d.getFullYear()===y&&d.getMonth()===m&&all[k].some(e=>e.type==='leave'))c++}return c}
+
+// Who's off on a given day (flex schedule + core weekends)
+function dayOffs(y,m,d){
+  const dow=new Date(y,m,d).getDay();
+  const offs=[];
+  // Core/SMM/Mgrs off on weekends
+  if(dow===0||dow===6){
+    for(const n in roster){if(['core','smm'].includes(roster[n].pod))offs.push({name:n,type:'day-off'})}
+  }
+  // Flex VAs off on their scheduled days
+  for(const n in flexSched){
+    if(flexSched[n].includes(dow))offs.push({name:n,type:'day-off'});
+  }
+  return offs;
+}
+
+function setSS(s,m){document.getElementById('sd').className='sd '+s;document.getElementById('st').textContent=m}
+function showSv(v){document.getElementById('sav').classList.toggle('on',v)}
+
+async function fullSync(){
+  document.getElementById('sb').disabled=true;setSS('ing','Syncing...');
+  try{
+    await Promise.all([syncB(),syncS(),loadR(),loadFlex()]);
+    setSS('live','Synced '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
+    render();renderSide();
+  }catch(e){console.error(e);setSS('err','Sync failed');toast('Sync failed: '+e.message,'error')}
+  finally{document.getElementById('sb').disabled=false}
+}
+
+async function syncB(){
+  const s=dk(cY,cM-1,1),eD=new Date(cY,cM+3,0),e=dk(eD.getFullYear(),eD.getMonth(),eD.getDate());
+  const r=await(await fetch(API+'?action=getEvents&start='+s+'&end='+e)).json();
+  if(r.error)throw new Error(r.error);bamboo=r.events||{};
+}
+async function syncS(){const r=await(await fetch(API+'?action=getSharedEntries')).json();if(r.error)throw new Error(r.error);shared=r.entries||{}}
+async function loadR(){try{const r=await(await fetch(API+'?action=roster')).json();if(r.roster){roster=r.roster;popRoster()}}catch(e){console.error(e)}}
+async function loadFlex(){try{const r=await(await fetch(API+'?action=getFlexSchedules')).json();flexSched=r.schedules||{}}catch(e){console.error(e)}}
+
+function popRoster(){
+  const s=document.getElementById('req-emp');
+  if(!Object.keys(roster).length){s.innerHTML='<option value="">No roster</option>';return}
+  const g={};for(const n in roster){const p=roster[n].pod;if(!g[p])g[p]=[];g[p].push(n)}
+  const labels={core:'Core VAs',flex:'Flex VAs',smm:'SMM','va manager':'Managers','director of vas':'Director'};
+  let h='<option value="">Select...</option>';
+  ['core','flex','smm','va manager','director of vas'].forEach(p=>{if(!g[p])return;h+='<optgroup label="'+labels[p]+'">';g[p].sort().forEach(n=>h+='<option>'+n+'</option>');h+='</optgroup>'});
+  s.innerHTML=h;
+}
+
+function render(){
+  document.getElementById('ml').textContent=MO[cM]+' '+cY;
+  const sw=new Date(cY,cM,1).getDay(),dim=new Date(cY,cM+1,0).getDate(),pv=new Date(cY,cM,0).getDate();
+  const tk=dk(now.getFullYear(),now.getMonth(),now.getDate());
+  const grid=document.getElementById('grid');grid.innerHTML='';
+  const cells=[];
+  for(let i=sw-1;i>=0;i--)cells.push({y:cM===0?cY-1:cY,m:cM===0?11:cM-1,d:pv-i,o:1});
+  for(let d=1;d<=dim;d++)cells.push({y:cY,m:cM,d,o:0});
+  const rem=(7-(cells.length%7))%7;
+  for(let d=1;d<=rem;d++)cells.push({y:cM===11?cY+1:cY,m:cM===11?0:cM+1,d,o:1});
+
+  cells.forEach(c=>{
+    const k=dk(c.y,c.m,c.d);const ent=entries(k);const offs=dayOffs(c.y,c.m,c.d);
+    const el=document.createElement('div');el.className='d';
+    const dow=new Date(c.y,c.m,c.d).getDay();
+    if(dow===0||dow===6)el.classList.add('we');
+    if(c.o)el.classList.add('om');
+    if(k===tk)el.classList.add('td');
+    const bl=isBl(k);const adj=!bl&&isAdj(c.y,c.m,c.d);
+    if(bl)el.classList.add('bl');else if(adj)el.classList.add('ba');
+
+    const nm=document.createElement('div');nm.className='dn';nm.textContent=c.d;el.appendChild(nm);
+
+    // Show entries first, then day-offs (limited)
+    const allBadges=[...ent,...offs];
+    allBadges.slice(0,4).forEach(e=>{
+      const b=document.createElement('div');b.className='b '+e.type;
+      b.textContent=e.type==='day-off'?e.name+' off':e.name;
+      el.appendChild(b);
+    });
+    if(allBadges.length>4){const m=document.createElement('div');m.className='b';m.style.cssText='color:var(--muted);background:transparent';m.textContent='+'+(allBadges.length-4)+' more';el.appendChild(m)}
+    if(adj&&!bl&&!allBadges.length){const a=document.createElement('div');a.className='b adj';a.textContent='✕ adjacent';el.appendChild(a)}
+    el.onclick=()=>openM(c.y,c.m,c.d);grid.appendChild(el);
+  });
+}
+
+function renderSide(){
+  // Flex schedules
+  const fs=document.getElementById('flex-sched');
+  const dayAbbr=['S','M','T','W','T','F','S'];
+  let fh='';
+  for(const name in flexSched){
+    const offs=flexSched[name];
+    fh+='<div class="sched-row"><span class="sched-name">'+name+'</span><div class="sched-days">';
+    for(let i=0;i<7;i++){
+      const isOff=offs.includes(i);
+      const isWe=i===0||i===6;
+      fh+='<div class="sched-day'+(isOff?' off':'')+(isWe&&!isOff?' weekend-off':'')+'">'+dayAbbr[i]+'</div>';
+    }
+    fh+='</div></div>';
+  }
+  if(!fh)fh='<div class="emp">No flex schedules set.</div>';
+  fs.innerHTML=fh;
+
+  // Weekend managers
+  const wl=document.getElementById('wknd-label');
+  const wm=document.getElementById('wknd-mgrs');
+  // Find next weekend
+  const t=new Date();let sat=new Date(t);sat.setDate(t.getDate()+(6-t.getDay()));
+  let sun=new Date(sat);sun.setDate(sat.getDate()+1);
+  if(t.getDay()===0){sun=new Date(t);sat=new Date(t);sat.setDate(t.getDate()-1)}
+  const satK=dk(sat.getFullYear(),sat.getMonth(),sat.getDate());
+  const sunK=dk(sun.getFullYear(),sun.getMonth(),sun.getDate());
+  wl.textContent=sat.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' – '+sun.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+
+  const satMgr=entries(satK).find(e=>e.type==='weekend-mgr');
+  const sunMgr=entries(sunK).find(e=>e.type==='weekend-mgr');
+  let wh='';
+  wh+='<div class="mgr-row"><span>Sat: '+(satMgr?satMgr.name:'<em>Unassigned</em>')+'</span>';
+  wh+='<span class="mgr-status '+(satMgr?'on':'off')+'">'+(satMgr?'On duty':'Needs assign')+'</span></div>';
+  wh+='<div class="mgr-row"><span>Sun: '+(sunMgr?sunMgr.name:'<em>Unassigned</em>')+'</span>';
+  wh+='<span class="mgr-status '+(sunMgr?'on':'off')+'">'+(sunMgr?'On duty':'Needs assign')+'</span></div>';
+  wm.innerHTML=wh;
+
+  // Manager leaves this month
+  const ml=document.getElementById('mgr-leaves');
+  let mlh='';
+  const mgrNames=['Pamela','Aica','Leila'];
+  const allData={...bamboo};for(const k in shared)allData[k]=[...(allData[k]||[]),...shared[k]];
+  mgrNames.forEach(name=>{
+    const leaves=[];
+    for(const k in allData){
+      const d=pk(k);
+      if(d.getFullYear()===cY&&d.getMonth()===cM){
+        allData[k].forEach(e=>{
+          if(e.type==='leave'&&e.name&&e.name.toLowerCase().includes(name.toLowerCase()))leaves.push(k);
+        });
+      }
+    }
+    if(leaves.length){
+      leaves.forEach(l=>{
+        const d=pk(l);
+        mlh+='<div class="mgr-row"><span>'+name+'</span><span class="mgr-status leave">'+d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+'</span></div>';
+      });
+    }
+  });
+  if(!mlh)mlh='<div class="emp">No manager leave this month.</div>';
+  ml.innerHTML=mlh;
+}
+
+function openM(y,m,d){
+  selKey=dk(y,m,d);const date=new Date(y,m,d);const dow=date.getDay();
+  document.getElementById('mdate').textContent=date.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('req-end').value=selKey;
+  document.getElementById('add-name').value='';
+  document.getElementById('wktab').style.display=(dow===0||dow===6)?'':'none';
+  if(dow===0||dow===6){const mgr=entries(selKey).find(e=>e.type==='weekend-mgr');document.getElementById('wk-mgr').value=mgr?mgr.name:''}
+  updStat(y,m,d);rendEnt();stab('req');document.getElementById('modal').classList.add('open');
+}
+
+function updStat(y,m,d){
+  const k=dk(y,m,d);const ent=entries(k);const el=document.getElementById('mstat');const r=[];
+  if(ent.some(e=>e.type==='holiday-flex'))r.push('Flex holiday — flex VAs cannot take off');
+  if(ent.some(e=>e.type==='holiday-core'))r.push('Core holiday — blocks everyone');
+  if(ent.some(e=>e.type==='blocked-flex'))r.push('Flex blocked');
+  if(ent.some(e=>e.type==='blocked-core'))r.push('Core blocked');
+  if(ent.some(e=>e.type==='leave'))r.push('Approved leave exists');
+  if(ent.some(e=>e.type==='birthday'))r.push('Birthday');
+  if(isAdj(y,m,d)&&!isHol(k))r.push('Adjacent to holiday — no leave');
+  const ml=cntLv(y,m);if(ml>=2)r.push('Monthly cap ('+ml+' leaves in '+MO[m]+')');
+  if(!r.length){el.className='ms ok';el.innerHTML='✓ Available for leave requests.'}
+  else{el.className='ms blk';el.innerHTML='✕ '+r.join('<br>✕ ')}
+}
+
+function rendEnt(){
+  const list=document.getElementById('elist');const ent=entries(selKey);
+  const d=pk(selKey);const offs=dayOffs(d.getFullYear(),d.getMonth(),d.getDate());
+  const all=[...ent,...offs];
+  list.innerHTML='';
+  if(!all.length){list.innerHTML='<div class="emp">No entries.</div>';return}
+  const lb={'holiday-flex':'Flex hol','holiday-core':'Core hol','blocked-flex':'Flex blk','blocked-core':'Core blk','leave':'Leave','birthday':'Birthday','weekend-mgr':'Wknd mgr','day-off':'Day off'};
+  all.forEach(e=>{
+    const el=document.createElement('div');el.className='en';
+    const src=e.source||'';const canDel=src==='shared';
+    el.innerHTML='<span class="b '+e.type+'" style="margin:0">'+(lb[e.type]||e.type)+'</span><span class="et">'+(e.type==='day-off'?e.name+' (scheduled off)':e.name)+'</span>'
+      +(e.addedBy?'<span style="font-size:10px;color:var(--dim)">by '+e.addedBy+'</span>':'')
+      +(src?'<span class="es '+src+'">'+(src==='bamboohr'?'Bamboo':'Shared')+'</span>':'')
+      +(canDel?'<button class="ed" onclick="delEnt('+e.row+')">Remove</button>':'');
+    list.appendChild(el);
+  });
+}
+
+function stab(n){
+  document.querySelectorAll('.t').forEach(t=>t.classList.toggle('on',t.dataset.tab===n));
+  document.querySelectorAll('.tc').forEach(t=>t.classList.remove('on'));
+  const tab=document.getElementById('tab-'+n);if(tab)tab.classList.add('on');
+}
+
+async function submitReq(){
+  const emp=document.getElementById('req-emp').value;const end=document.getElementById('req-end').value||selKey;
+  if(!emp){toast('Pick employee','error');return}
+  const btn=document.getElementById('req-btn');btn.disabled=true;btn.textContent='Submitting...';
+  try{const r=await(await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'requestTimeOff',employeeName:emp,start:selKey,end})})).json();if(r.error)throw new Error(r.error);toast(emp+' request submitted','success');closeM();setTimeout(fullSync,1500)}
+  catch(e){toast('Failed: '+e.message,'error')}finally{btn.disabled=false;btn.textContent='Submit to BambooHR'}
+}
+
+async function addEntry(){
+  const type=document.getElementById('add-type').value;const name=document.getElementById('add-name').value.trim();
+  if(!name){document.getElementById('add-name').focus();return}
+  const btn=document.getElementById('add-btn');btn.disabled=true;showSv(true);
+  try{const r=await(await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'addSharedEntry',date:selKey,type,name,addedBy:'Widget'})})).json();if(r.error)throw new Error(r.error);toast('Saved','success');document.getElementById('add-name').value='';await syncS();refM();render();renderSide()}
+  catch(e){toast('Failed: '+e.message,'error')}finally{btn.disabled=false;showSv(false)}
+}
+
+async function setWkMgr(){
+  const mgr=document.getElementById('wk-mgr').value;const btn=document.getElementById('wk-btn');btn.disabled=true;showSv(true);
+  try{
+    const ex=(shared[selKey]||[]).filter(e=>e.type==='weekend-mgr');
+    for(const e of ex)await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'deleteSharedEntry',row:e.row})});
+    if(mgr)await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'addSharedEntry',date:selKey,type:'weekend-mgr',name:mgr,addedBy:'Widget'})});
+    toast(mgr?mgr+' assigned':'Cleared','success');await syncS();refM();render();renderSide();
+  }catch(e){toast('Failed: '+e.message,'error')}finally{btn.disabled=false;showSv(false)}
+}
+
+async function delEnt(row){
+  if(!confirm('Remove?'))return;showSv(true);
+  try{const r=await(await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'deleteSharedEntry',row})})).json();if(r.error)throw new Error(r.error);toast('Removed','success');await syncS();refM();render();renderSide()}
+  catch(e){toast('Failed: '+e.message,'error')}finally{showSv(false)}
+}
+
+function refM(){const d=pk(selKey);updStat(d.getFullYear(),d.getMonth(),d.getDate());rendEnt()}
+function closeM(){document.getElementById('modal').classList.remove('open')}
+function chMo(d){cM+=d;if(cM>11){cM=0;cY++}if(cM<0){cM=11;cY--}render();fullSync()}
+function goNow(){cM=now.getMonth();cY=now.getFullYear();render();fullSync()}
+function toast(m,t){const e=document.getElementById('toast');e.textContent=m;e.className='toast show'+(t?' '+t:'');setTimeout(()=>e.classList.remove('show'),3500)}
+
+render();fullSync();
+</script>
+</body>
+</html>
