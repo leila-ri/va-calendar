@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VA Leave Calendar — Roof Ignite</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>📅</text></svg>">
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://accounts.google.com/gsi/client" onload="onGsiLoaded()" async defer></script>
 <style>
 :root{
   --bg:#fafaf7;--sf:#fff;--bd:rgba(0,0,0,.1);--bs:rgba(0,0,0,.18);
@@ -591,8 +591,19 @@ function chMo(d){cM+=d;if(cM>11){cM=0;cY++}if(cM<0){cM=11;cY--}render();fullSync
 function goNow(){cM=now.getMonth();cY=now.getFullYear();render();fullSync()}
 function toast(m,t){const e=document.getElementById('toast');e.textContent=m;e.className='toast show'+(t?' '+t:'');setTimeout(()=>e.classList.remove('show'),3500)}
 
-// Start
-checkExistingSession();
+// Start — wait for Google library to load
+let gsiReady = false;
+
+function onGsiLoaded() {
+  gsiReady = true;
+  checkExistingSession();
+}
+
+// If GSI loaded before our script (unlikely but safe)
+if (typeof google !== 'undefined' && google.accounts) {
+  onGsiLoaded();
+}
+
 </script>
 </body>
 </html>
