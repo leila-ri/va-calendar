@@ -33,10 +33,10 @@ button{font-family:inherit;font-size:14px;padding:8px 14px;border-radius:var(--r
 button:hover{background:#f0f0eb}button:active{transform:scale(.98)}button:disabled{opacity:.5;cursor:not-allowed}
 .pri{background:var(--ac);color:#fff;border-color:var(--ac)}.pri:hover{background:#443d9e}
 
-.panels{display:grid;grid-template-columns:1fr 300px;gap:16px;margin-bottom:16px}
+.panels{display:grid;grid-template-columns:1fr 320px;gap:16px;margin-bottom:16px}
 .side{display:flex;flex-direction:column;gap:12px}
 .card{background:var(--sf);border:.5px solid var(--bd);border-radius:var(--rl);padding:14px 16px}
-.card h3{font-size:14px;font-weight:500;margin-bottom:8px}
+.card h3{font-size:14px;font-weight:500;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
 .card-sub{font-size:12px;color:var(--mu);margin-bottom:10px}
 
 .nav{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--sf);border:.5px solid var(--bd);border-radius:var(--rl);padding:12px 16px;margin-bottom:16px}
@@ -78,11 +78,22 @@ button:hover{background:#f0f0eb}button:active{transform:scale(.98)}button:disabl
 .mgr-st.off{background:var(--dgb);color:var(--dg)}
 .mgr-st.lv{background:var(--wnb);color:var(--wn)}
 
-.flex-week{margin-bottom:12px}
-.flex-week-title{font-size:12px;font-weight:500;color:var(--mu);margin-bottom:6px}
-.flex-va-row{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f5f5f0;border-radius:var(--r);margin-bottom:4px;font-size:13px}
-.flex-va-name{width:55px;font-weight:500}
-.flex-va-days{font-size:12px;color:var(--mu)}
+/* Flex schedule grid */
+.fsg{width:100%;border-collapse:collapse;font-size:12px}
+.fsg th{font-weight:500;padding:6px 4px;text-align:center;color:var(--mu);border-bottom:.5px solid var(--bd)}
+.fsg th:first-child{text-align:left;width:50px}
+.fsg td{padding:4px 2px;text-align:center;vertical-align:middle}
+.fsg td:first-child{text-align:left;font-weight:500;font-size:11px;color:var(--tx)}
+.fsg .week-label{font-size:10px;color:var(--dm);padding:6px 4px 2px;font-weight:500;border-top:.5px solid var(--bd)}
+.fday{width:26px;height:26px;border-radius:6px;border:.5px solid var(--bd);background:var(--sf);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:10px;color:var(--dm);transition:all .15s}
+.fday:hover{border-color:var(--ac)}
+.fday.on{background:var(--wnb);color:var(--wn);border-color:var(--wn);font-weight:600}
+.fday.hol{background:var(--dgb);color:var(--dg);border-color:var(--dg);cursor:not-allowed;opacity:.6}
+.flex-save-row{display:flex;justify-content:flex-end;margin-top:10px;gap:8px;align-items:center}
+.flex-save-row .unsaved{font-size:11px;color:var(--wn);display:none}
+.flex-save-row .unsaved.show{display:inline}
+.flex-warn{font-size:11px;color:var(--dg);margin-top:4px;display:none}
+.flex-warn.show{display:block}
 
 /* Modal */
 .mo{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:100;padding:16px}
@@ -96,8 +107,7 @@ button:hover{background:#f0f0eb}button:active{transform:scale(.98)}button:disabl
 .en{display:flex;align-items:center;gap:6px;padding:8px 10px;background:#f5f5f0;border-radius:var(--r);margin-bottom:6px;font-size:13px}
 .et{flex:1}
 .es{font-size:10px;padding:2px 6px;border-radius:3px;text-transform:uppercase;letter-spacing:.3px;flex-shrink:0}
-.es.bamboohr{background:var(--infb);color:var(--inf)}
-.es.shared{background:var(--tlb);color:var(--tl)}
+.es.bamboohr{background:var(--infb);color:var(--inf)}.es.shared{background:var(--tlb);color:var(--tl)}
 .ed{background:transparent;border:none;color:var(--dg);cursor:pointer;padding:4px 8px;font-size:12px;flex-shrink:0}
 .ed:hover{background:var(--dgb)}
 .fg{margin-bottom:12px}
@@ -112,13 +122,6 @@ button:hover{background:#f0f0eb}button:active{transform:scale(.98)}button:disabl
 .emp{font-size:13px;color:var(--dm);text-align:center;padding:12px;font-style:italic}
 .sv{position:absolute;inset:0;background:rgba(255,255,255,.7);display:none;align-items:center;justify-content:center;z-index:10;border-radius:var(--rl);font-size:14px;color:var(--mu)}
 .sv.on{display:flex}
-
-/* Flex off assignment in modal */
-.flex-assign{display:flex;flex-direction:column;gap:8px}
-.flex-assign-row{display:flex;align-items:center;gap:10px;font-size:13px}
-.flex-assign-row label{width:60px;font-weight:500;margin-bottom:0}
-.flex-assign-row input[type=checkbox]{width:18px;height:18px;accent-color:var(--ac)}
-
 .toast{position:fixed;bottom:24px;right:24px;background:#1a1a1a;color:#fff;padding:12px 18px;border-radius:var(--r);font-size:14px;z-index:200;opacity:0;transform:translateY(20px);transition:opacity .2s,transform .2s;max-width:360px}
 .toast.show{opacity:1;transform:translateY(0)}.toast.error{background:var(--dg)}.toast.success{background:var(--ok)}
 
@@ -134,10 +137,7 @@ button:hover{background:#f0f0eb}button:active{transform:scale(.98)}button:disabl
 <div class="c">
 
 <header>
-  <div>
-    <h1>📅 VA Leave Calendar</h1>
-    <p class="sub">Synced with BambooHR · Shared entries visible to the whole team</p>
-  </div>
+  <div><h1>📅 VA Leave Calendar</h1><p class="sub">Synced with BambooHR · Shared entries visible to the whole team</p></div>
   <div class="ha">
     <span class="ss"><span class="sd" id="sd"></span><span id="st">Not synced</span></span>
     <button onclick="fullSync()" id="sb">Refresh</button>
@@ -173,16 +173,26 @@ button:hover{background:#f0f0eb}button:active{transform:scale(.98)}button:disabl
   </div>
 
   <div class="side">
+    <!-- FLEX SCHEDULE GRID -->
     <div class="card">
-      <h3>This week's flex offs</h3>
-      <p class="card-sub">Manually assigned. Click a weekday to set flex offs.</p>
-      <div id="flex-side"></div>
+      <h3>Flex VA schedule <span style="font-size:12px;color:var(--mu);font-weight:400" id="flex-month-label"></span></h3>
+      <p class="card-sub">Click days to toggle off. Each flex VA needs 2 offs per week (Tue–Fri). Hit save after editing.</p>
+      <div id="flex-grid"></div>
+      <div class="flex-warn" id="flex-warn"></div>
+      <div class="flex-save-row">
+        <span class="unsaved" id="flex-unsaved">Unsaved changes</span>
+        <button onclick="saveFlexMonth()" id="flex-save-btn" class="pri" style="padding:6px 14px;font-size:13px">Save schedule</button>
+      </div>
     </div>
+
+    <!-- WEEKEND MANAGERS -->
     <div class="card">
       <h3>Weekend managers</h3>
       <p class="card-sub" id="wknd-label">Loading...</p>
       <div id="wknd-mgrs"></div>
     </div>
+
+    <!-- MANAGER LEAVE -->
     <div class="card">
       <h3>Manager leave (this month)</h3>
       <div id="mgr-leaves"></div>
@@ -201,17 +211,14 @@ button:hover{background:#f0f0eb}button:active{transform:scale(.98)}button:disabl
     <div class="tb">
       <button class="t on" data-tab="req" onclick="stab('req')">Request leave</button>
       <button class="t" data-tab="add" onclick="stab('add')">Add entry</button>
-      <button class="t" data-tab="flex" onclick="stab('flex')" id="flextab" style="display:none">Flex offs</button>
       <button class="t" data-tab="wk" onclick="stab('wk')" id="wktab" style="display:none">Weekend duty</button>
     </div>
-
     <div class="tc on" id="tab-req">
       <p style="font-size:12px;color:var(--mu);margin-bottom:10px">Submits to BambooHR. Approval happens there.</p>
       <div class="fg"><label>Employee</label><select id="req-emp"><option>Loading...</option></select></div>
       <div class="fg"><label>End date</label><input type="date" id="req-end"></div>
       <button class="pri" style="width:100%" onclick="submitReq()" id="req-btn">Submit to BambooHR</button>
     </div>
-
     <div class="tc" id="tab-add">
       <p style="font-size:12px;color:var(--mu);margin-bottom:10px">Saved to shared Sheet — visible to everyone.</p>
       <div class="fg"><label>Type</label><select id="add-type">
@@ -225,13 +232,6 @@ button:hover{background:#f0f0eb}button:active{transform:scale(.98)}button:disabl
       <div class="fg"><label>Name / description</label><input id="add-name" placeholder="e.g. Peak coverage, Ann's birthday"></div>
       <button class="pri" style="width:100%" onclick="addEntry()" id="add-btn">Add shared entry</button>
     </div>
-
-    <div class="tc" id="tab-flex">
-      <p style="font-size:12px;color:var(--mu);margin-bottom:10px">Check which flex VAs are off this day. Saved to shared Sheet.</p>
-      <div class="flex-assign" id="flex-checks"></div>
-      <button class="pri" style="width:100%;margin-top:12px" onclick="saveFlexOffs()" id="flex-btn">Save flex offs</button>
-    </div>
-
     <div class="tc" id="tab-wk">
       <p style="font-size:12px;color:var(--mu);margin-bottom:10px">1 manager per weekend day. Saved to shared Sheet.</p>
       <div class="fg"><label>Manager on duty</label><select id="wk-mgr">
@@ -239,90 +239,58 @@ button:hover{background:#f0f0eb}button:active{transform:scale(.98)}button:disabl
       </select></div>
       <button class="pri" style="width:100%" onclick="setWkMgr()" id="wk-btn">Save</button>
     </div>
-
     <div class="ma"><button onclick="closeM()">Close</button></div>
   </div>
 </div>
-
 <div class="toast" id="toast"></div>
 </div>
 
 <script>
 const API='https://script.google.com/macros/s/AKfycbwQdE3oeV_UWrUr4i5yYo9T_kzTRHKGjx2erFl7OI27d5La1BmUEoRImUE-INyWvVTuJg/exec';
 const MO=['January','February','March','April','May','June','July','August','September','October','November','December'];
-const DAY_NAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const DN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const FLEX_VAS_DEFAULT=['Ann','Maykee','Reyn'];
 
 let cY,cM,selKey;
 let bamboo={},shared={},roster={},flexVAs=[],managers=[];
+let flexDirty=false; // track unsaved flex changes
 const now=new Date();cY=now.getFullYear();cM=now.getMonth();
 
 function dk(y,m,d){return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0')}
 function pk(k){const p=k.split('-').map(Number);return new Date(p[0],p[1]-1,p[2])}
-
-// Merge bamboo + shared entries for a date
 function entries(k){return[...(bamboo[k]||[]),...(shared[k]||[])]}
-
 function isHol(k){return entries(k).some(e=>e.type==='holiday-flex'||e.type==='holiday-core')}
-
-function isBl(k){
-  return entries(k).some(e=>['holiday-flex','holiday-core','blocked-flex','blocked-core','leave','birthday'].includes(e.type));
-}
-
+function isFlexHol(k){return entries(k).some(e=>e.type==='holiday-flex')}
+function isBl(k){return entries(k).some(e=>['holiday-flex','holiday-core','blocked-flex','blocked-core','leave','birthday'].includes(e.type))}
 function isAdj(y,m,d){
   const b=new Date(y,m,d-1),a=new Date(y,m,d+1);
   return isHol(dk(b.getFullYear(),b.getMonth(),b.getDate()))||isHol(dk(a.getFullYear(),a.getMonth(),a.getDate()));
 }
-
-// Monthly cap: count BambooHR leaves for a specific person in a month
-function vaLeavesInMonth(vaName,y,m){
-  let c=0;
-  for(const k in bamboo){
-    const d=pk(k);
-    if(d.getFullYear()===y&&d.getMonth()===m){
-      bamboo[k].forEach(e=>{
-        if(e.type==='leave'&&e.name&&e.name.toLowerCase().includes(vaName.toLowerCase()))c++;
-      });
-    }
-  }
-  return c;
+function vaLeavesInMonth(name,y,m){
+  let c=0;for(const k in bamboo){const d=pk(k);if(d.getFullYear()===y&&d.getMonth()===m)bamboo[k].forEach(e=>{if(e.type==='leave'&&e.name&&e.name.toLowerCase().includes(name.toLowerCase()))c++})}return c;
 }
-
-// Get flex VAs who are off on a given date (from shared entries with type flex-off)
-function flexOffsOnDate(k){
-  return entries(k).filter(e=>e.type==='flex-off').map(e=>e.name);
-}
+function flexOffsOnDate(k){return entries(k).filter(e=>e.type==='flex-off').map(e=>e.name)}
 
 function setSS(s,m){document.getElementById('sd').className='sd '+s;document.getElementById('st').textContent=m}
 function showSv(v){document.getElementById('sav').classList.toggle('on',v)}
 
 // === SYNC ===================================================================
-
 async function fullSync(){
   document.getElementById('sb').disabled=true;setSS('ing','Syncing...');
-  try{
-    await Promise.all([syncB(),syncS(),loadR()]);
-    setSS('live','Synced '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
-    render();renderSide();
-  }catch(e){console.error(e);setSS('err','Sync failed');toast('Sync failed: '+e.message,'error')}
+  try{await Promise.all([syncB(),syncS(),loadR()]);setSS('live','Synced '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));render();renderSide()}
+  catch(e){console.error(e);setSS('err','Sync failed');toast('Sync failed: '+e.message,'error')}
   finally{document.getElementById('sb').disabled=false}
 }
-
 async function syncB(){
   const s=dk(cY,cM-2,1),eD=new Date(cY,cM+4,0),e=dk(eD.getFullYear(),eD.getMonth(),eD.getDate());
-  const r=await(await fetch(API+'?action=getEvents&start='+s+'&end='+e)).json();
-  if(r.error)throw new Error(r.error);bamboo=r.events||{};
+  const r=await(await fetch(API+'?action=getEvents&start='+s+'&end='+e)).json();if(r.error)throw new Error(r.error);bamboo=r.events||{};
 }
 async function syncS(){const r=await(await fetch(API+'?action=getSharedEntries')).json();if(r.error)throw new Error(r.error);shared=r.entries||{}}
 async function loadR(){
-  try{
-    const r=await(await fetch(API+'?action=roster')).json();
-    if(r.roster){roster=r.roster;flexVAs=r.flexVAs||[];managers=r.managers||[];popRoster()}
-  }catch(e){console.error(e)}
+  try{const r=await(await fetch(API+'?action=roster')).json();if(r.roster){roster=r.roster;flexVAs=r.flexVAs||FLEX_VAS_DEFAULT;managers=r.managers||['Pamela','Aica','Leila'];popRoster()}}catch(e){console.error(e)}
 }
-
 function popRoster(){
-  const s=document.getElementById('req-emp');
-  if(!Object.keys(roster).length){s.innerHTML='<option value="">No roster</option>';return}
+  const s=document.getElementById('req-emp');if(!Object.keys(roster).length){s.innerHTML='<option value="">No roster</option>';return}
   const g={};for(const n in roster){const p=roster[n].pod;if(!g[p])g[p]=[];g[p].push(n)}
   const labels={core:'Core VAs',flex:'Flex VAs',smm:'SMM','va manager':'Managers','director of vas':'Director'};
   let h='<option value="">Select...</option>';
@@ -331,7 +299,6 @@ function popRoster(){
 }
 
 // === RENDER CALENDAR ========================================================
-
 function render(){
   document.getElementById('ml').textContent=MO[cM]+' '+cY;
   const sw=new Date(cY,cM,1).getDay(),dim=new Date(cY,cM+1,0).getDate(),pv=new Date(cY,cM,0).getDate();
@@ -344,135 +311,206 @@ function render(){
   for(let d=1;d<=rem;d++)cells.push({y:cM===11?cY+1:cY,m:cM===11?0:cM+1,d,o:1});
 
   cells.forEach(c=>{
-    const k=dk(c.y,c.m,c.d);const ent=entries(k);
-    const dow=new Date(c.y,c.m,c.d).getDay();
-    const isWe=dow===0||dow===6;
+    const k=dk(c.y,c.m,c.d);const ent=entries(k);const dow=new Date(c.y,c.m,c.d).getDay();const isWe=dow===0||dow===6;
     const el=document.createElement('div');el.className='d';
-    if(isWe)el.classList.add('we');
-    if(c.o)el.classList.add('om');
-    if(k===tk)el.classList.add('td');
-
+    if(isWe)el.classList.add('we');if(c.o)el.classList.add('om');if(k===tk)el.classList.add('td');
     const bl=isBl(k);const adj=!bl&&isAdj(c.y,c.m,c.d);
     if(bl)el.classList.add('bl');else if(adj)el.classList.add('ba');
-
     const nm=document.createElement('div');nm.className='dn';nm.textContent=c.d;el.appendChild(nm);
 
-    // Build badge list
     const badges=[];
-
-    // BambooHR + shared entries (holidays, leaves, blocked, birthdays, weekend-mgr)
     ent.filter(e=>e.type!=='flex-off').forEach(e=>badges.push(e));
+    if(isWe)badges.push({type:'core-off',name:'Core/SMM off'});
+    const fo=ent.filter(e=>e.type==='flex-off').map(e=>e.name);
+    if(fo.length)badges.push({type:'flex-off',name:fo.join(', ')+' off'});
 
-    // Core VAs off on weekends — single consolidated badge
-    if(isWe) badges.push({type:'core-off',name:'Core/SMM off'});
-
-    // Flex offs — combine into single badge
-    const flexOff=ent.filter(e=>e.type==='flex-off').map(e=>e.name);
-    if(flexOff.length) badges.push({type:'flex-off',name:flexOff.join(', ')+' off'});
-
-    badges.slice(0,5).forEach(e=>{
-      const b=document.createElement('div');b.className='b '+e.type;b.textContent=e.name;el.appendChild(b);
-    });
+    badges.slice(0,5).forEach(e=>{const b=document.createElement('div');b.className='b '+e.type;b.textContent=e.name;el.appendChild(b)});
     if(badges.length>5){const m=document.createElement('div');m.className='b';m.style.cssText='color:var(--mu);background:transparent';m.textContent='+'+(badges.length-5)+' more';el.appendChild(m)}
     if(adj&&!bl&&!badges.length){const a=document.createElement('div');a.className='b adj';a.textContent='✕ adjacent';el.appendChild(a)}
-
     el.onclick=()=>openM(c.y,c.m,c.d);grid.appendChild(el);
   });
 }
 
 // === SIDE PANELS ============================================================
-
 function renderSide(){
-  // This week's flex offs
-  const fs=document.getElementById('flex-side');
-  const t=new Date();
-  // Find Monday of this week
-  const mon=new Date(t);mon.setDate(t.getDate()-(t.getDay()===0?6:t.getDay()-1));
-  let fh='';
-  for(let i=0;i<5;i++){// Mon-Fri
-    const day=new Date(mon);day.setDate(mon.getDate()+i);
-    const k=dk(day.getFullYear(),day.getMonth(),day.getDate());
-    const offs=flexOffsOnDate(k);
-    const dayName=DAY_NAMES[day.getDay()];
-    const dateStr=(day.getMonth()+1)+'/'+day.getDate();
-    fh+='<div class="flex-va-row"><span class="flex-va-name">'+dayName+' '+dateStr+'</span>';
-    if(offs.length){
-      fh+='<span class="flex-va-days">'+offs.join(', ')+' off</span>';
-    }else{
-      fh+='<span class="flex-va-days" style="color:var(--dm)">No flex offs set</span>';
-    }
-    fh+='</div>';
-  }
-  fs.innerHTML=fh;
+  renderFlexGrid();renderWeekendMgrs();renderMgrLeaves();
+}
 
-  // Weekend managers
-  const wl=document.getElementById('wknd-label');
-  const wm=document.getElementById('wknd-mgrs');
-  let sat=new Date(t);sat.setDate(t.getDate()+(6-t.getDay()));
+function renderFlexGrid(){
+  document.getElementById('flex-month-label').textContent=MO[cM]+' '+cY;
+  const fvs=flexVAs.length?flexVAs:FLEX_VAS_DEFAULT;
+  const dim=new Date(cY,cM+1,0).getDate();
+
+  // Build weeks (Mon-Fri groups)
+  const weeks=[];
+  let week=[];
+  for(let d=1;d<=dim;d++){
+    const dow=new Date(cY,cM,d).getDay();
+    if(dow>=2&&dow<=5){// Tue-Fri
+      week.push({d,dow,key:dk(cY,cM,d)});
+    }
+    if(dow===5||d===dim){
+      if(week.length){weeks.push(week);week=[]}
+    }
+  }
+
+  let html='<table class="fsg"><thead><tr><th></th>';
+  // We'll render per-week rows
+  html+='</tr></thead><tbody>';
+
+  weeks.forEach((wk,wi)=>{
+    const wkStart=wk[0].d,wkEnd=wk[wk.length-1].d;
+    html+='<tr><td colspan="'+(wk.length+1)+'" class="week-label">Week '+(wi+1)+' ('+MO[cM].slice(0,3)+' '+wkStart+'–'+wkEnd+')</td></tr>';
+
+    // Header row for this week's days
+    html+='<tr><th></th>';
+    wk.forEach(day=>{html+='<th>'+DN[day.dow]+' '+day.d+'</th>'});
+    html+='</tr>';
+
+    // Row per flex VA
+    fvs.forEach(va=>{
+      html+='<tr><td>'+va+'</td>';
+      wk.forEach(day=>{
+        const isOff=flexOffsOnDate(day.key).includes(va);
+        const holDay=isFlexHol(day.key);
+        if(holDay){
+          html+='<td><div class="fday hol" title="Holiday — blocked">H</div></td>';
+        }else{
+          html+='<td><div class="fday'+(isOff?' on':'')+'" data-va="'+va+'" data-key="'+day.key+'" onclick="toggleFlex(this)" title="'+(isOff?'Off — click to remove':'Click to set day off')+'">'+day.d+'</div></td>';
+        }
+      });
+      html+='</tr>';
+    });
+  });
+
+  html+='</tbody></table>';
+  document.getElementById('flex-grid').innerHTML=html;
+  flexDirty=false;
+  document.getElementById('flex-unsaved').classList.remove('show');
+  document.getElementById('flex-warn').classList.remove('show');
+}
+
+function toggleFlex(el){
+  el.classList.toggle('on');
+  flexDirty=true;
+  document.getElementById('flex-unsaved').classList.add('show');
+  validateFlexGrid();
+}
+
+function validateFlexGrid(){
+  // Check each VA has exactly 2 offs per week
+  const fvs=flexVAs.length?flexVAs:FLEX_VAS_DEFAULT;
+  const dim=new Date(cY,cM+1,0).getDate();
+  const weeks=[];let week=[];
+  for(let d=1;d<=dim;d++){
+    const dow=new Date(cY,cM,d).getDay();
+    if(dow>=2&&dow<=5)week.push(d);
+    if(dow===5||d===dim){if(week.length){weeks.push(week);week=[]}}
+  }
+
+  const warnings=[];
+  const onDays=document.querySelectorAll('.fday.on');
+  const offMap={};
+  onDays.forEach(el=>{
+    const va=el.dataset.va;const key=el.dataset.key;
+    if(!offMap[va])offMap[va]={};
+    // Find which week this belongs to
+    const dayNum=parseInt(key.split('-')[2]);
+    weeks.forEach((wk,wi)=>{
+      if(wk.includes(dayNum)){
+        if(!offMap[va][wi])offMap[va][wi]=0;
+        offMap[va][wi]++;
+      }
+    });
+  });
+
+  fvs.forEach(va=>{
+    weeks.forEach((wk,wi)=>{
+      const count=(offMap[va]&&offMap[va][wi])||0;
+      if(count!==2&&wk.length>=2){
+        warnings.push(va+' has '+count+' off in week '+(wi+1)+' (need 2)');
+      }
+    });
+  });
+
+  const warnEl=document.getElementById('flex-warn');
+  if(warnings.length){
+    warnEl.textContent=warnings.join(' · ');
+    warnEl.classList.add('show');
+  }else{
+    warnEl.classList.remove('show');
+  }
+}
+
+async function saveFlexMonth(){
+  const btn=document.getElementById('flex-save-btn');btn.disabled=true;btn.textContent='Saving...';
+  try{
+    // 1. Delete all existing flex-off entries for this month
+    const toDelete=[];
+    for(let d=1;d<=new Date(cY,cM+1,0).getDate();d++){
+      const k=dk(cY,cM,d);
+      (shared[k]||[]).forEach(e=>{if(e.type==='flex-off')toDelete.push(e.row)});
+    }
+    if(toDelete.length){
+      await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'deleteSharedEntries',rows:toDelete})});
+    }
+
+    // 2. Collect all toggled-on days
+    const newEntries=[];
+    document.querySelectorAll('.fday.on').forEach(el=>{
+      newEntries.push({date:el.dataset.key,type:'flex-off',name:el.dataset.va,addedBy:'Widget'});
+    });
+
+    // 3. Batch add
+    if(newEntries.length){
+      await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'addSharedEntries',entries:newEntries})});
+    }
+
+    toast('Flex schedule saved ('+newEntries.length+' days)','success');
+    await syncS();
+    flexDirty=false;
+    document.getElementById('flex-unsaved').classList.remove('show');
+    render();renderSide();
+  }catch(e){toast('Save failed: '+e.message,'error')}
+  finally{btn.disabled=false;btn.textContent='Save schedule'}
+}
+
+function renderWeekendMgrs(){
+  const wl=document.getElementById('wknd-label');const wm=document.getElementById('wknd-mgrs');
+  const t=new Date();let sat=new Date(t);
+  const dayOfWeek=t.getDay();
+  if(dayOfWeek===6){sat=new Date(t)}else if(dayOfWeek===0){sat=new Date(t);sat.setDate(t.getDate()-1)}else{sat.setDate(t.getDate()+(6-dayOfWeek))}
   let sun=new Date(sat);sun.setDate(sat.getDate()+1);
-  if(t.getDay()===0){sun=new Date(t);sat=new Date(t);sat.setDate(t.getDate()-1)}
-  if(t.getDay()===6){sat=new Date(t);sun=new Date(t);sun.setDate(t.getDate()+1)}
   const satK=dk(sat.getFullYear(),sat.getMonth(),sat.getDate());
   const sunK=dk(sun.getFullYear(),sun.getMonth(),sun.getDate());
   wl.textContent=sat.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' – '+sun.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-
   const satMgr=entries(satK).find(e=>e.type==='weekend-mgr');
   const sunMgr=entries(sunK).find(e=>e.type==='weekend-mgr');
   wm.innerHTML=
     '<div class="mgr-row"><span>Sat: '+(satMgr?satMgr.name:'<em>Unassigned</em>')+'</span><span class="mgr-st '+(satMgr?'on':'off')+'">'+(satMgr?'On duty':'Needs assign')+'</span></div>'+
     '<div class="mgr-row"><span>Sun: '+(sunMgr?sunMgr.name:'<em>Unassigned</em>')+'</span><span class="mgr-st '+(sunMgr?'on':'off')+'">'+(sunMgr?'On duty':'Needs assign')+'</span></div>';
+}
 
-  // Manager leaves this month
-  const ml=document.getElementById('mgr-leaves');
-  let mlh='';
+function renderMgrLeaves(){
+  const ml=document.getElementById('mgr-leaves');let h='';
   const mgrNames=managers.length?managers:['Pamela','Aica','Leila'];
   mgrNames.forEach(name=>{
-    for(const k in bamboo){
-      const d=pk(k);
-      if(d.getFullYear()===cY&&d.getMonth()===cM){
-        bamboo[k].forEach(e=>{
-          if(e.type==='leave'&&e.name&&e.name.toLowerCase().includes(name.toLowerCase())){
-            mlh+='<div class="mgr-row"><span>'+name+'</span><span class="mgr-st lv">'+d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+'</span></div>';
-          }
-        });
-      }
-    }
+    for(const k in bamboo){const d=pk(k);if(d.getFullYear()===cY&&d.getMonth()===cM)bamboo[k].forEach(e=>{
+      if(e.type==='leave'&&e.name&&e.name.toLowerCase().includes(name.toLowerCase()))
+        h+='<div class="mgr-row"><span>'+name+'</span><span class="mgr-st lv">'+d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+'</span></div>';
+    })}
   });
-  if(!mlh)mlh='<div class="emp">No manager leave this month.</div>';
-  ml.innerHTML=mlh;
+  ml.innerHTML=h||'<div class="emp">No manager leave this month.</div>';
 }
 
 // === MODAL ==================================================================
-
 function openM(y,m,d){
   selKey=dk(y,m,d);const date=new Date(y,m,d);const dow=date.getDay();const isWe=dow===0||dow===6;
-  const isWeekday=dow>=1&&dow<=5;
   document.getElementById('mdate').textContent=date.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-  document.getElementById('req-end').value=selKey;
-  document.getElementById('add-name').value='';
-
-  // Show/hide tabs
+  document.getElementById('req-end').value=selKey;document.getElementById('add-name').value='';
   document.getElementById('wktab').style.display=isWe?'':'none';
-  document.getElementById('flextab').style.display=isWeekday?'':'none';
-
   if(isWe){const mgr=entries(selKey).find(e=>e.type==='weekend-mgr');document.getElementById('wk-mgr').value=mgr?mgr.name:''}
-
-  // Flex off checkboxes
-  if(isWeekday){
-    const checks=document.getElementById('flex-checks');
-    const currentOffs=flexOffsOnDate(selKey);
-    const fvs=flexVAs.length?flexVAs:['Ann','Maykee','Reyn'];
-    checks.innerHTML=fvs.map(n=>
-      '<div class="flex-assign-row"><label>'+n+'</label><input type="checkbox" data-va="'+n+'" '+(currentOffs.includes(n)?'checked':'')+'> <span style="font-size:12px;color:var(--mu)">'+(currentOffs.includes(n)?'Off':'Working')+'</span></div>'
-    ).join('');
-    // Update label on change
-    checks.querySelectorAll('input').forEach(cb=>{
-      cb.onchange=function(){this.nextElementSibling.textContent=this.checked?'Off':'Working'};
-    });
-  }
-
-  updStat(y,m,d);rendEnt();stab('req');
-  document.getElementById('modal').classList.add('open');
+  updStat(y,m,d);rendEnt();stab('req');document.getElementById('modal').classList.add('open');
 }
 
 function updStat(y,m,d){
@@ -484,57 +522,35 @@ function updStat(y,m,d){
   if(ent.some(e=>e.type==='leave'))r.push('Approved leave exists');
   if(ent.some(e=>e.type==='birthday'))r.push('Birthday');
   if(isAdj(y,m,d)&&!isHol(k))r.push('Adjacent to holiday — no leave');
-
-  // Per-VA monthly cap check — show which VAs have hit the limit
-  const allVAs=Object.keys(roster);
+  // Per-VA cap: 1 planned leave per month (BambooHR only)
   const capped=[];
-  allVAs.forEach(va=>{
-    const count=vaLeavesInMonth(va,y,m);
-    if(count>=1)capped.push(va+' ('+count+')');
-  });
-  if(capped.length)r.push('Monthly cap reached: '+capped.join(', '));
-
+  Object.keys(roster).forEach(va=>{const c=vaLeavesInMonth(va,y,m);if(c>=1)capped.push(va)});
+  if(capped.length)r.push('Monthly cap (1 leave): '+capped.join(', '));
   if(!r.length){el.className='ms ok';el.innerHTML='✓ Available for leave requests.'}
   else{el.className='ms blk';el.innerHTML='✕ '+r.join('<br>✕ ')}
 }
 
 function rendEnt(){
-  const list=document.getElementById('elist');const ent=entries(selKey);
-  const dow=new Date(pk(selKey)).getDay();const isWe=dow===0||dow===6;
-
-  // Build display list
+  const list=document.getElementById('elist');const ent=entries(selKey);const dow=new Date(pk(selKey)).getDay();const isWe=dow===0||dow===6;
   const display=[];
-  // Non-flex-off entries
   ent.filter(e=>e.type!=='flex-off').forEach(e=>display.push(e));
-  // Consolidated flex offs
-  const flexOff=ent.filter(e=>e.type==='flex-off');
-  if(flexOff.length){
-    display.push({type:'flex-off',name:flexOff.map(e=>e.name).join(', ')+' off',source:'shared',_flexRows:flexOff.map(e=>e.row)});
-  }
-  // Core off on weekends
-  if(isWe) display.push({type:'core-off',name:'Core/SMM off (weekend)'});
-
+  if(isWe)display.push({type:'core-off',name:'Core/SMM off (weekend)'});
+  const fo=ent.filter(e=>e.type==='flex-off').map(e=>e.name);
+  if(fo.length)display.push({type:'flex-off',name:fo.join(', ')+' off',source:'shared'});
   list.innerHTML='';
   if(!display.length){list.innerHTML='<div class="emp">No entries.</div>';return}
   const lb={'holiday-flex':'Flex hol','holiday-core':'Core hol','blocked-flex':'Flex blk','blocked-core':'Core blk','leave':'Leave','birthday':'Birthday','weekend-mgr':'Wknd mgr','flex-off':'Flex off','core-off':'Core off'};
   display.forEach(e=>{
-    const el=document.createElement('div');el.className='en';
-    const src=e.source||'';const canDel=src==='shared'&&e.type!=='flex-off';// flex-offs managed via tab
+    const el=document.createElement('div');el.className='en';const src=e.source||'';const canDel=src==='shared'&&e.type!=='flex-off';
     el.innerHTML='<span class="b '+e.type+'" style="margin:0">'+(lb[e.type]||e.type)+'</span><span class="et">'+e.name+'</span>'
       +(e.addedBy?'<span style="font-size:10px;color:var(--dm)">by '+e.addedBy+'</span>':'')
-      +(src&&src!=='undefined'?'<span class="es '+src+'">'+(src==='bamboohr'?'Bamboo':'Shared')+'</span>':'')
+      +(src?'<span class="es '+src+'">'+(src==='bamboohr'?'Bamboo':'Shared')+'</span>':'')
       +(canDel?'<button class="ed" onclick="delEnt('+e.row+')">Remove</button>':'');
     list.appendChild(el);
   });
 }
 
-function stab(n){
-  document.querySelectorAll('.t').forEach(t=>t.classList.toggle('on',t.dataset.tab===n));
-  document.querySelectorAll('.tc').forEach(t=>t.classList.remove('on'));
-  const tab=document.getElementById('tab-'+n);if(tab)tab.classList.add('on');
-}
-
-// === ACTIONS ================================================================
+function stab(n){document.querySelectorAll('.t').forEach(t=>t.classList.toggle('on',t.dataset.tab===n));document.querySelectorAll('.tc').forEach(t=>t.classList.remove('on'));const tab=document.getElementById('tab-'+n);if(tab)tab.classList.add('on')}
 
 async function submitReq(){
   const emp=document.getElementById('req-emp').value;const end=document.getElementById('req-end').value||selKey;
@@ -552,36 +568,11 @@ async function addEntry(){
   catch(e){toast('Failed: '+e.message,'error')}finally{btn.disabled=false;showSv(false)}
 }
 
-async function saveFlexOffs(){
-  const btn=document.getElementById('flex-btn');btn.disabled=true;showSv(true);
-  try{
-    // Get current flex-off entries for this date and delete them
-    const existing=(shared[selKey]||[]).filter(e=>e.type==='flex-off');
-    if(existing.length){
-      const rows=existing.map(e=>e.row);
-      await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'deleteSharedEntries',rows})});
-    }
-    // Get checked VAs
-    const checked=[];
-    document.querySelectorAll('#flex-checks input:checked').forEach(cb=>checked.push(cb.dataset.va));
-    // Add new entries
-    if(checked.length){
-      const newEntries=checked.map(n=>({date:selKey,type:'flex-off',name:n,addedBy:'Widget'}));
-      await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'addSharedEntries',entries:newEntries})});
-    }
-    toast(checked.length?checked.join(', ')+' off':'All flex VAs working','success');
-    await syncS();refM();render();renderSide();
-  }catch(e){toast('Failed: '+e.message,'error')}finally{btn.disabled=false;showSv(false)}
-}
-
 async function setWkMgr(){
   const mgr=document.getElementById('wk-mgr').value;const btn=document.getElementById('wk-btn');btn.disabled=true;showSv(true);
   try{
     const ex=(shared[selKey]||[]).filter(e=>e.type==='weekend-mgr');
-    if(ex.length){
-      const rows=ex.map(e=>e.row);
-      await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'deleteSharedEntries',rows})});
-    }
+    if(ex.length)await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'deleteSharedEntries',rows:ex.map(e=>e.row)})});
     if(mgr)await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'addSharedEntry',date:selKey,type:'weekend-mgr',name:mgr,addedBy:'Widget'})});
     toast(mgr?mgr+' assigned':'Cleared','success');await syncS();refM();render();renderSide();
   }catch(e){toast('Failed: '+e.message,'error')}finally{btn.disabled=false;showSv(false)}
