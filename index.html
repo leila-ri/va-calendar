@@ -376,7 +376,17 @@ function isAdjForUser(y,m,d){
   return isAdjFlex(y,m,d)||isAdjCore(y,m,d);
 }
 
-function vaLvMo(n,y,m){let c=0;for(const k in bamboo){const d=pk(k);if(d.getFullYear()===y&&d.getMonth()===m)bamboo[k].forEach(e=>{if(e.type==='leave'&&e.name&&e.name.toLowerCase().includes(n.toLowerCase()))c++})}return c}
+// ptoByMonth comes from the API — only counts PTO (type 88), not birthday/sick/holiday
+let ptoByMonth = {};
+function vaLvMo(n,y,m){
+  // Look up in ptoByMonth using "name-yyyy-mm" key format (lowercase)
+  const key = n.toLowerCase() + '-' + y + '-' + String(m+1).padStart(2,'0');
+  // Try matching by first name since BambooHR returns full names
+  for (const k in ptoByMonth) {
+    if (k.includes(n.toLowerCase()) && k.endsWith('-' + y + '-' + String(m+1).padStart(2,'0'))) return ptoByMonth[k];
+  }
+  return 0;
+}
 function flexOffs(k){return ents(k).filter(e=>e.type==='flex-off').map(e=>e.name)}
 function setSS(s,m){document.getElementById('sd').className='sync-dot '+s;document.getElementById('st').textContent=m}
 function showSv(v){document.getElementById('sav').classList.toggle('on',v)}
@@ -388,7 +398,7 @@ async function fullSync(){
   catch(e){console.error(e);setSS('err','Failed');toast('Sync failed: '+e.message,'error')}
   finally{document.getElementById('sb').disabled=false}
 }
-async function syncB(){const s=dk(cY,cM-2,1),eD=new Date(cY,cM+4,0),e=dk(eD.getFullYear(),eD.getMonth(),eD.getDate());const r=await(await fetch(API+'?action=getEvents&start='+s+'&end='+e)).json();if(r.error)throw new Error(r.error);bamboo=r.events||{}}
+async function syncB(){const s=dk(cY,cM-2,1),eD=new Date(cY,cM+4,0),e=dk(eD.getFullYear(),eD.getMonth(),eD.getDate());const r=await(await fetch(API+'?action=getEvents&start='+s+'&end='+e)).json();if(r.error)throw new Error(r.error);bamboo=r.events||{};ptoByMonth=r.ptoByMonth||{}}
 async function syncS(){const r=await(await fetch(API+'?action=getSharedEntries')).json();if(r.error)throw new Error(r.error);shared=r.entries||{}}
 async function loadR(){const r=await(await fetch(API+'?action=roster')).json();if(r.roster){roster=r.roster;emailMap=r.emailMap||{};flexVAs=r.flexVAs||[];managers=r.managers||[]}}
 
