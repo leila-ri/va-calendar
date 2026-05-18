@@ -236,12 +236,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--tx);line-height:1.
   </div>
 
   <div class="side">
-    <div class="card">
+    <div class="card mgr-only" id="flex-card">
       <div class="card-head">Flex Schedule <span id="flex-month-label"></span></div>
-      <p class="card-sub"><span class="mgr-only">Click days to toggle. </span>2 offs per week (Tue–Fri).</p>
+      <p class="card-sub">Click days to toggle. 2 offs per week (Tue–Fri).</p>
       <div id="flex-grid"></div>
       <div class="flex-warn" id="flex-warn"></div>
-      <div class="flex-save mgr-only"><span class="unsaved" id="flex-unsaved">Unsaved</span><button onclick="saveFlexMonth()" id="flex-save-btn" class="btn-sm">Save</button></div>
+      <div class="flex-save"><span class="unsaved" id="flex-unsaved">Unsaved</span><button onclick="saveFlexMonth()" id="flex-save-btn" class="btn-sm">Save</button></div>
     </div>
     <div class="card">
       <div class="card-head">Weekend Managers</div>
@@ -311,7 +311,7 @@ function onGsiLoaded(){
 function showLogin(){
   document.getElementById('login-screen').classList.remove('hidden');
   document.getElementById('main-app').style.display='none';
-  google.accounts.id.initialize({client_id:CID,callback:handleCred,auto_select:true});
+  google.accounts.id.initialize({client_id:CID,callback:handleCred,auto_select:true,use_fedcm_for_prompt:false});
   google.accounts.id.renderButton(document.getElementById('g_id_signin'),{theme:'outline',size:'large',width:300,text:'signin_with',shape:'pill'});
   google.accounts.id.prompt();
 }
@@ -530,7 +530,7 @@ function updStat(y,m,d){
   if(isAdjFlex(y,m,d)&&!isFlexHol(k))r.push('Adjacent to flex holiday — flex VAs blocked');
   if(isAdjCore(y,m,d)&&!isCoreHol(k))r.push('Adjacent to core holiday — core/SMM/mgrs blocked');
   const capped=[];Object.keys(roster).forEach(va=>{if(vaLvMo(va,y,m)>=1)capped.push(va)});
-  if(capped.length)r.push('Monthly cap (1 leave): '+capped.join(', '));
+  if(capped.length)r.push('Monthly PTO cap reached (1 per VA): '+capped.join(', '));
   if(!r.length){el.className='mi-status ok';el.innerHTML='✓ Available for leave requests.'}
   else{el.className='mi-status blk';el.innerHTML='✕ '+r.join('<br>✕ ')}
 }
