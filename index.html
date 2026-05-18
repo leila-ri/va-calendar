@@ -311,9 +311,8 @@ function onGsiLoaded(){
 function showLogin(){
   document.getElementById('login-screen').classList.remove('hidden');
   document.getElementById('main-app').style.display='none';
-  google.accounts.id.initialize({client_id:CID,callback:handleCred,auto_select:true,use_fedcm_for_prompt:false});
+  google.accounts.id.initialize({client_id:CID,callback:handleCred,auto_select:false,use_fedcm_for_prompt:false});
   google.accounts.id.renderButton(document.getElementById('g_id_signin'),{theme:'outline',size:'large',width:300,text:'signin_with',shape:'pill'});
-  google.accounts.id.prompt();
 }
 function handleCred(r){
   const p=parseJwt(r.credential);
