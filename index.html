@@ -376,16 +376,14 @@ function isAdjForUser(y,m,d){
   return isAdjFlex(y,m,d)||isAdjCore(y,m,d);
 }
 
-// ptoByMonth comes from the API — only counts PTO (type 88), not birthday/sick/holiday
+// ptoByMonth keyed by "employeeId-YYYY-MM" — only PTO (88) and Birthday (89)
 let ptoByMonth = {};
 function vaLvMo(n,y,m){
-  // Look up in ptoByMonth using "name-yyyy-mm" key format (lowercase)
-  const key = n.toLowerCase() + '-' + y + '-' + String(m+1).padStart(2,'0');
-  // Try matching by first name since BambooHR returns full names
-  for (const k in ptoByMonth) {
-    if (k.includes(n.toLowerCase()) && k.endsWith('-' + y + '-' + String(m+1).padStart(2,'0'))) return ptoByMonth[k];
-  }
-  return 0;
+  // Look up the employee ID from the roster
+  const va = roster[n];
+  if (!va || !va.id) return 0;
+  const key = va.id + '-' + y + '-' + String(m+1).padStart(2,'0');
+  return ptoByMonth[key] || 0;
 }
 function flexOffs(k){return ents(k).filter(e=>e.type==='flex-off').map(e=>e.name)}
 function setSS(s,m){document.getElementById('sd').className='sync-dot '+s;document.getElementById('st').textContent=m}
