@@ -175,6 +175,31 @@ body{font-family:var(--font);background:var(--bg);color:var(--tx);line-height:1.
 .toast.error{background:var(--red);color:#fff}
 .toast.success{background:var(--green);color:#fff}
 
+/* === LUNCH SCHEDULE === */
+.lunch-sec{background:var(--sf);border:1px solid var(--bd);border-radius:var(--rl);padding:16px;margin-bottom:20px}
+.lunch-hd{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.lunch-ttl{font-size:14px;font-weight:700;color:var(--charcoal);letter-spacing:-.2px}
+.lunch-sub{font-size:11px;color:var(--mu);margin-top:2px}
+.lunch-act{display:flex;gap:6px;align-items:center}
+.lunch-btn{font-family:var(--font);font-size:12px;padding:5px 11px;border-radius:var(--r);border:1px solid var(--bd);background:var(--sf);color:var(--tx);cursor:pointer;font-weight:500}
+.lunch-btn:hover{background:var(--sf2)}
+.lunch-btn.active{background:var(--charcoal);color:var(--brand);border-color:var(--charcoal)}
+.ltbl{width:100%;border-collapse:collapse;font-size:12px}
+.ltbl th{text-align:left;padding:5px 8px;font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.5px;border-bottom:1.5px solid var(--bd);white-space:nowrap}
+.ltbl td{padding:5px 8px;border-bottom:1px solid var(--bd);vertical-align:middle}
+.ltbl tr:last-child td{border-bottom:none}
+.ltbl tr:hover td{background:var(--sf2)}
+.ltbl .redist td{background:#FFFAF0}
+.lunch-tz{padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;letter-spacing:.3px}
+.lunch-tz.est{background:var(--bluebg);color:var(--blue)}
+.lunch-tz.pst{background:var(--purplebg);color:var(--purple)}
+.lunch-time{font-weight:600;color:var(--charcoal)}
+.lunch-flex{color:var(--teal);font-size:11px}
+.lunch-leads{color:var(--mu);font-size:11px}
+.lunch-moved{font-size:9px;background:var(--orangebg);color:var(--orange);padding:1px 5px;border-radius:3px;font-weight:600;margin-left:4px}
+.lunch-note{font-size:11px;color:var(--orange);margin-top:10px;padding:8px 10px;background:var(--orangebg);border-radius:var(--r);line-height:1.6}
+.lunch-empty{font-size:12px;color:var(--dm);text-align:center;padding:14px;font-style:italic}
+
 @media(max-width:860px){
   .main{grid-template-columns:1fr}
   .cell{min-height:68px;padding:4px 5px}
@@ -182,6 +207,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--tx);line-height:1.
   .cal-month{font-size:16px}
   .topbar{padding:12px 14px}
   .app{padding:12px}
+  .ltbl th:nth-child(5),.ltbl td:nth-child(5){display:none}
 }
 </style>
 </head>
@@ -212,6 +238,22 @@ body{font-family:var(--font);background:var(--bg);color:var(--tx);line-height:1.
     <button onclick="fullSync()" id="sb">Refresh</button>
     <button class="btn-bamboo" onclick="window.open('https://roofignite.bamboohr.com/calendar','_blank')">BambooHR ↗</button>
   </div>
+</div>
+
+<!-- LUNCH SCHEDULE -->
+<div class="lunch-sec" id="lunch-sec" style="display:none">
+  <div class="lunch-hd">
+    <div>
+      <div class="lunch-ttl">🍽 Today's Lunch Schedule</div>
+      <div class="lunch-sub" id="lunch-date"></div>
+    </div>
+    <div class="lunch-act">
+      <button class="lunch-btn" id="notif-btn" onclick="toggleLunchNotif()" title="9am daily notification">🔔 9am Alert</button>
+      <button class="lunch-btn" onclick="renderLunchSchedule()" title="Refresh">↻ Refresh</button>
+      <button class="lunch-btn" id="lunch-toggle" onclick="toggleLunchSec()">▲ Collapse</button>
+    </div>
+  </div>
+  <div id="lunch-body"></div>
 </div>
 
 <div class="main">
@@ -341,7 +383,7 @@ function showApp(){
   const role=currentUser.isManager?'<span class="user-role">Manager</span>':'';
   pill.innerHTML=pic+currentUser.name+role;
   document.querySelectorAll('.mgr-only').forEach(el=>{el.style.display=currentUser.isManager?'':'none'});
-  render();fullSync();
+  render();fullSync();initLunchNotif();
 }
 function signOut(){google.accounts.id.disableAutoSelect();sessionStorage.clear();currentUser=null;document.getElementById('main-app').style.display='none';showLogin()}
 function parseJwt(t){try{const b=t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');return JSON.parse(decodeURIComponent(atob(b).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join('')))}catch(e){return null}}
@@ -392,7 +434,7 @@ function showSv(v){document.getElementById('sav').classList.toggle('on',v)}
 // === SYNC ====================================================================
 async function fullSync(){
   document.getElementById('sb').disabled=true;setSS('ing','Syncing...');
-  try{await Promise.all([syncB(),syncS(),loadR()]);setSS('live',new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));render();renderSide();setReqEmp()}
+  try{await Promise.all([syncB(),syncS(),loadR()]);setSS('live',new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));render();renderSide();setReqEmp();renderLunchSchedule()}
   catch(e){console.error(e);setSS('err','Failed');toast('Sync failed: '+e.message,'error')}
   finally{document.getElementById('sb').disabled=false}
 }
@@ -591,6 +633,218 @@ function closeM(){document.getElementById('modal').classList.remove('open')}
 function chMo(d){cM+=d;if(cM>11){cM=0;cY++}if(cM<0){cM=11;cY--}render();fullSync()}
 function goNow(){cM=now.getMonth();cY=now.getFullYear();render();fullSync()}
 function toast(m,t){const e=document.getElementById('toast');e.textContent=m;e.className='toast show'+(t?' '+t:'');setTimeout(()=>e.classList.remove('show'),3500)}
+
+// === LUNCH SCHEDULE ============================================================
+
+const LUNCH_DATA = {
+  // Flex VA → Core VAs they cover (from DASHBOARD col H & K)
+  flexGroups: {
+    Ann:    ['Ed','Mark','Myra'],
+    Maykee: ['Kirk','Jayson','Lou','Jell','Rovy','Jessica','Jan'],
+    Reyn:   ['Bea','Klaie','Ena','Rincee','Dan','Neil','Veronica']
+  },
+  // Core + Flex VA metadata (timezone + lead volume from DASHBOARD)
+  va: {
+    Ed:       {tz:'PST', leads:232},
+    Mark:     {tz:'EST', leads:236},
+    Myra:     {tz:'EST', leads:167},
+    Kirk:     {tz:'EST', leads:59},
+    Jayson:   {tz:'EST', leads:51},
+    Lou:      {tz:'EST', leads:77},
+    Jell:     {tz:'EST', leads:348},
+    Rovy:     {tz:'EST', leads:190},
+    Jessica:  {tz:'PST', leads:137},
+    Jan:      {tz:'EST', leads:209},
+    Bea:      {tz:'EST', leads:207},
+    Klaie:    {tz:'EST', leads:134},
+    Ena:      {tz:'EST', leads:143},
+    Rincee:   {tz:'EST', leads:79},
+    Dan:      {tz:'EST', leads:54},
+    Neil:     {tz:'PST', leads:71},
+    Veronica: {tz:'EST', leads:124}
+  },
+  // EST lunch slots (30-min stagger, window 11am–4pm)
+  estSlots: ['11:00 AM','11:30 AM','12:00 PM','12:30 PM','1:00 PM','1:30 PM','2:00 PM','2:30 PM','3:00 PM','3:30 PM']
+};
+
+function isFlexOff(flexName, dateKey) {
+  if (flexOffs(dateKey).includes(flexName)) return true;
+  const bEnt = bamboo[dateKey] || [];
+  return bEnt.some(e => e.type === 'leave' && e.name && e.name.toLowerCase().includes(flexName.toLowerCase()));
+}
+
+function buildLunchSchedule(dateKey) {
+  const {flexGroups, va, estSlots} = LUNCH_DATA;
+  const allFlex = Object.keys(flexGroups);
+  const absentFlex = allFlex.filter(f => isFlexOff(f, dateKey));
+  const presentFlex = allFlex.filter(f => !absentFlex.includes(f));
+
+  if (!presentFlex.length) return {rows:[], absentFlex, noFlex:true};
+
+  // Build today's coverage map — start with each flex VA's own group
+  const coverage = {};
+  presentFlex.forEach(f => { coverage[f] = [...flexGroups[f]]; });
+
+  // Redistribute orphaned core VAs (from absent flex VAs) to present flex VAs,
+  // balancing by total lead volume so no one flex VA gets overloaded
+  absentFlex.forEach(f => {
+    (flexGroups[f] || []).forEach(cva => {
+      const chosen = presentFlex.reduce((best, pf) => {
+        const bLoad = (coverage[best] || []).reduce((s,v) => s + (va[v]?.leads || 0), 0);
+        const cLoad = (coverage[pf]  || []).reduce((s,v) => s + (va[v]?.leads || 0), 0);
+        return cLoad < bLoad ? pf : best;
+      });
+      coverage[chosen].push(cva);
+    });
+  });
+
+  // Assign lunch slots within each coverage group
+  // EST: sort by lead volume desc → highest-volume VA gets earliest slot
+  // PST: fixed 4:00 PM PST regardless
+  const rows = [];
+  Object.keys(coverage).forEach(flex => {
+    const estVAs = coverage[flex]
+      .filter(v => va[v]?.tz === 'EST')
+      .sort((a, b) => (va[b]?.leads || 0) - (va[a]?.leads || 0));
+    const pstVAs = coverage[flex].filter(v => va[v]?.tz === 'PST');
+
+    estVAs.forEach((v, i) => rows.push({
+      va: v, tz: 'EST', flex,
+      lunchTime: estSlots[Math.min(i, estSlots.length - 1)],
+      leads: va[v]?.leads || 0
+    }));
+    pstVAs.forEach(v => rows.push({
+      va: v, tz: 'PST', flex,
+      lunchTime: '4:00 PM PST',
+      leads: va[v]?.leads || 0
+    }));
+  });
+
+  // Sort output by time slot order
+  const slotOrder = [...estSlots, '4:00 PM PST'];
+  rows.sort((a, b) => slotOrder.indexOf(a.lunchTime) - slotOrder.indexOf(b.lunchTime));
+
+  return {rows, absentFlex, noFlex:false};
+}
+
+function renderLunchSchedule() {
+  const today = new Date();
+  const dow = today.getDay();
+  const todayKey = dk(today.getFullYear(), today.getMonth(), today.getDate());
+
+  const lsec = document.getElementById('lunch-sec');
+  lsec.style.display = '';
+  document.getElementById('lunch-date').textContent =
+    today.toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'});
+
+  const body = document.getElementById('lunch-body');
+
+  if (dow === 0 || dow === 6) {
+    body.innerHTML = '<div class="lunch-empty">No lunch schedule on weekends.</div>';
+    return;
+  }
+  if (isHol(todayKey)) {
+    body.innerHTML = '<div class="lunch-empty">Holiday today — no schedule needed.</div>';
+    return;
+  }
+
+  const {rows, absentFlex, noFlex} = buildLunchSchedule(todayKey);
+
+  if (noFlex) {
+    body.innerHTML = '<div class="lunch-empty" style="color:var(--red)">⚠ All flex VAs are off today — no coverage available.</div>';
+    return;
+  }
+
+  const {flexGroups} = LUNCH_DATA;
+  let html = '<table class="ltbl"><thead><tr><th>VA</th><th>Timezone</th><th>Lunch Time</th><th>Covered By</th><th>Leads (MTD)</th></tr></thead><tbody>';
+
+  rows.forEach(r => {
+    const origFlex = Object.keys(flexGroups).find(f => flexGroups[f].includes(r.va));
+    const moved = origFlex !== r.flex;
+    html += `<tr${moved ? ' class="redist"' : ''}>
+      <td><strong>${r.va}</strong>${moved ? `<span class="lunch-moved">moved</span>` : ''}</td>
+      <td><span class="lunch-tz ${r.tz.toLowerCase()}">${r.tz}</span></td>
+      <td class="lunch-time">${r.lunchTime}</td>
+      <td class="lunch-flex">${r.flex}${moved ? ` <span style="color:var(--orange);font-size:10px">(from ${origFlex})</span>` : ''}</td>
+      <td class="lunch-leads">${r.leads.toLocaleString()}</td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+
+  if (absentFlex.length) {
+    html += `<div class="lunch-note">⚠ <strong>${absentFlex.join(', ')}</strong> ${absentFlex.length === 1 ? 'is' : 'are'} off today — their core VAs have been redistributed to present flex VAs based on lead volume balance.</div>`;
+  }
+
+  body.innerHTML = html;
+}
+
+function toggleLunchSec() {
+  const body = document.getElementById('lunch-body');
+  const btn = document.getElementById('lunch-toggle');
+  const collapsed = body.style.display === 'none';
+  body.style.display = collapsed ? '' : 'none';
+  btn.textContent = collapsed ? '▲ Collapse' : '▼ Expand';
+}
+
+// 9am notification setup
+let _notifTimer = null;
+function toggleLunchNotif() {
+  if (!('Notification' in window)) { toast('Notifications not supported in this browser','error'); return; }
+  const btn = document.getElementById('notif-btn');
+  const enabled = localStorage.getItem('lunch_notif') === '1';
+  if (enabled) {
+    localStorage.removeItem('lunch_notif');
+    if (_notifTimer) { clearTimeout(_notifTimer); _notifTimer = null; }
+    btn.classList.remove('active');
+    btn.textContent = '🔔 9am Alert';
+    toast('9am lunch alert disabled');
+  } else {
+    Notification.requestPermission().then(p => {
+      if (p === 'granted') {
+        localStorage.setItem('lunch_notif', '1');
+        btn.classList.add('active');
+        btn.textContent = '🔔 9am On';
+        scheduleLunchNotif();
+        toast('9am lunch alert enabled! 🍽', 'success');
+      } else {
+        toast('Notification permission denied', 'error');
+      }
+    });
+  }
+}
+
+function scheduleLunchNotif() {
+  if (localStorage.getItem('lunch_notif') !== '1') return;
+  if (Notification.permission !== 'granted') return;
+  const target = new Date();
+  target.setHours(9, 0, 0, 0);
+  if (new Date() >= target) target.setDate(target.getDate() + 1);
+  const delay = target - new Date();
+  _notifTimer = setTimeout(() => {
+    new Notification('🍽 Lunch Schedule Ready', {
+      body: "Today's VA lunch schedule is ready. Check the calendar.",
+      tag: 'lunch-schedule'
+    });
+    scheduleLunchNotif(); // reschedule for next day
+  }, delay);
+}
+
+function initLunchNotif() {
+  if (localStorage.getItem('lunch_notif') === '1' && Notification.permission === 'granted') {
+    const btn = document.getElementById('notif-btn');
+    btn.classList.add('active');
+    btn.textContent = '🔔 9am On';
+    scheduleLunchNotif();
+  }
+  // Show toast if it's currently 9am and schedule hasn't been shown today
+  const h = new Date().getHours();
+  const todayKey = dk(now.getFullYear(), now.getMonth(), now.getDate());
+  if (h === 9 && localStorage.getItem('lunch_toast') !== todayKey) {
+    localStorage.setItem('lunch_toast', todayKey);
+    setTimeout(() => toast("🍽 Lunch schedule is ready for today!", 'success'), 1500);
+  }
+}
 </script>
 </body>
 </html>
