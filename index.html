@@ -687,9 +687,9 @@ const LUNCH_DATA = {
 };
 
 function buildLunchSchedule(dateKey) {
-  const offToday     = flexOffs(dateKey);
-  const flexOff      = Object.keys(LUNCH_DATA.flex).filter(n => offToday.includes(n));
-  const flexPresent  = Object.keys(LUNCH_DATA.flex).filter(n => !flexOff.includes(n));
+  const offToday    = flexOffs(dateKey);
+  const flexOff     = Object.keys(LUNCH_DATA.flex).filter(n => offToday.includes(n));
+  const flexPresent = Object.keys(LUNCH_DATA.flex).filter(n => !flexOff.includes(n));
 
   // Load-balance reassignment for orphaned core VAs
   const reassigned = {};
@@ -717,21 +717,21 @@ function buildLunchSchedule(dateKey) {
     });
   });
 
-  // Filter to present VAs, sort by leads desc, 2 per 30-min slot from 11 AM
-  const present = LUNCH_DATA.est.filter(va => !flexOff.includes(va.name))
-    .sort((a,b) => b.leads - a.leads);
+  // 5 fixed 1-hour slots: 11 AM – 4 PM EST
+  const SLOT_LABELS = ['11:00–12:00','12:00–1:00','1:00–2:00','2:00–3:00','3:00–4:00'];
+  const bins = SLOT_LABELS.map(label => ({label, vas:[], totalLeads:0}));
 
-  const slots = [];
-  for (let i = 0; i < present.length; i += 2) {
-    const totalMins = 11*60 + Math.floor(i/2)*30;
-    const h = Math.floor(totalMins/60), m = totalMins%60;
-    const ampm = h < 12 ? 'AM' : 'PM';
-    const time  = `${h > 12 ? h-12 : h}:${String(m).padStart(2,'0')} ${ampm}`;
-    slots.push({
-      time,
-      vas: present.slice(i, i+2).map(va => ({...va, coveredBy: coverageMap[va.name]||null}))
-    });
-  }
+  // Greedy balanced bin-packing: assign heaviest VA to lightest bin each round
+  const present = LUNCH_DATA.est.filter(va => !flexOff.includes(va.name))
+    .slice().sort((a,b) => b.leads - a.leads);
+
+  present.forEach(va => {
+    const target = bins.slice().sort((a,b) => a.totalLeads - b.totalLeads)[0];
+    target.vas.push({...va, coveredBy: coverageMap[va.name]||null});
+    target.totalLeads += va.leads;
+  });
+
+  const slots = bins.map(b => ({time: b.label, vas: b.vas, totalLeads: b.totalLeads}));
 
   return {dateKey, slots, pst:LUNCH_DATA.pst, flexPresent, flexOff, reassigned, coverageMap};
 }
@@ -779,20 +779,22 @@ function renderLunchCanvas(schedule) {
   };
 
   // ── EST section ──
-  const lastT = schedule.slots[schedule.slots.length-1]?.time || '—';
-  secHdr(`EST VAs  ·  11:00 AM – ${lastT} EST  ·  Sorted by lead volume  ·  2 per slot`);
+  secHdr(`EST VAs  ·  11:00 AM – 4:00 PM EST  ·  1-hour slots  ·  Balanced by lead volume`);
 
   schedule.slots.forEach((slot, si) => {
     const sy=y+si*slotH;
     x.fillStyle = si%2===0 ? C.wh : C.bg; x.fillRect(0,sy,W,slotH);
     x.fillStyle=C.bd; x.fillRect(0,sy+slotH-1,W,1);
 
-    // time
-    x.font=F(13,true); x.fillStyle=C.ch; x.textBaseline='middle';
-    x.fillText(slot.time, 20, sy+slotH/2);
+    // time range + slot total leads
+    x.font=F(11,true); x.fillStyle=C.ch; x.textBaseline='middle';
+    x.fillText(slot.time, 14, sy+slotH/2-8);
+    x.font=F(10,false); x.fillStyle=C.mu;
+    x.fillText(`${slot.totalLeads.toLocaleString()} leads`, 14, sy+slotH/2+9);
     x.fillStyle=C.bd; x.fillRect(112,sy+10,1,slotH-20);
 
-    const colW = (W-128)/2;
+    // dynamic column width based on VA count per slot
+    const colW = (W-128) / Math.max(2, slot.vas.length);
     slot.vas.forEach((va, vi) => {
       const cx2 = 128 + vi*colW;
 
@@ -938,7 +940,7 @@ function buildSlackBlocks(s) {
     const vas = sl.vas.map(v =>
       `*${v.name}* _(${v.leads.toLocaleString()} leads)_${v.coveredBy&&v.type==='core'?' ['+v.coveredBy+']':''}`
     ).join('   ');
-    return `\`${sl.time}\`  ${vas}`;
+    return `\`${sl.time}\` _(${sl.totalLeads.toLocaleString()} total)_  ${vas}`;
   }).join('\n');
 
   const pstText = s.pst.map(v => `*${v.name}* _(${v.leads.toLocaleString()} leads)_`).join('   ');
@@ -955,7 +957,7 @@ function buildSlackBlocks(s) {
 
   return [
     {type:'header',  text:{type:'plain_text', text:`🍱 Lunch Schedule — ${dStr}`, emoji:true}},
-    {type:'section', text:{type:'mrkdwn', text:`*EST VAs — Staggered 11:00 AM–${s.slots[s.slots.length-1]?.time||'—'} EST*\n${estText}`}},
+    {type:'section', text:{type:'mrkdwn', text:`*EST VAs — 1-hour slots, 11:00 AM–4:00 PM EST (balanced by lead volume)*\n${estText}`}},
     {type:'divider'},
     {type:'section', text:{type:'mrkdwn', text:`*PST VAs — Fixed 4:00 PM PST*\n\`4:00 PM\`  ${pstText}`}},
     {type:'divider'},
