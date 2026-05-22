@@ -41,6 +41,7 @@ const SC_VA_ROW            = 4;   // row with VA names (read-only)
 const SC_BOOKING_ROW       = 7;   // booking rate %
 const SC_FFUP_ROW          = 8;   // follow-up adherence %
 const SC_BOOKING_SCORE_ROW = 9;   // booking rate score (0–10)
+const SC_FFUP_SCORE_ROW    = 10;  // follow-up adherence score (0–10)
 
 const MAIN_SHEETS = ['ROOF, MAIN', 'HVAC, MAIN', 'GUTTER, Main', 'WINDOWS, MAIN'];
 const BOOKING_KPI = 0.45;
@@ -101,6 +102,38 @@ function bookingScore_(rate) {
   if (p >= 10) return 3;
   if (p >= 5)  return 2;
   if (p >  0)  return 1;
+  return 0;
+}
+
+// ============================================================
+// FOLLOW-UP SCORE  (0 – 10)
+// ============================================================
+//  90%+  → 10
+//  85–89 →  9
+//  80–84 →  8
+//  75–79 →  7
+//  70–74 →  6
+//  65–69 →  5
+//  60–64 →  4
+//  55–59 →  3
+//  50–54 →  2
+//  40–49 →  1
+//  < 40% →  0
+//  no data → '—'
+
+function followUpScore_(adherence) {
+  if (adherence === null || adherence === undefined) return '—';
+  const p = adherence * 100;
+  if (p >= 90) return 10;
+  if (p >= 85) return 9;
+  if (p >= 80) return 8;
+  if (p >= 75) return 7;
+  if (p >= 70) return 6;
+  if (p >= 65) return 5;
+  if (p >= 60) return 4;
+  if (p >= 55) return 3;
+  if (p >= 50) return 2;
+  if (p >= 40) return 1;
   return 0;
 }
 
@@ -330,7 +363,7 @@ function writeFollowUpSheet_(leads, mtdRange, today) {
 
   // ── Summary rows ────────────────────────────────────────
   const SCOLS = ['VA','Active Leads','Expected Slots','Filled Slots',
-                 'Adherence %','Score /15 pts','Missed Slots'];
+                 'Adherence %','Score (0–10)','Missed Slots'];
   const SW = SCOLS.length;
 
   const sumRows = Object.entries(vaMap)
@@ -340,10 +373,10 @@ function writeFollowUpSheet_(leads, mtdRange, today) {
       return fb - fa;
     })
     .map(([va, m]) => {
-      const adh   = m.expected ? Math.round(m.filled/m.expected*100) : 100;
-      const score = (adh/100*15).toFixed(1);
+      const adh   = m.expected ? m.filled/m.expected : 1;
+      const score = followUpScore_(adh);
       const missed= m.expected - m.filled;
-      return [va, m.count, m.expected, m.filled, adh+'%', score+'/15', missed];
+      return [va, m.count, m.expected, m.filled, pct_(m.filled, m.expected || 1), score, missed];
     });
 
   // ── Detail rows ─────────────────────────────────────────
@@ -385,12 +418,22 @@ function writeFollowUpSheet_(leads, mtdRange, today) {
 
   const ds = 5;
   for (let i = 0; i < sumRows.length; i++) {
-    const p    = parseInt(sumRows[i][4]);
-    const cell = sheet.getRange(ds+i, 5);
-    if (!isNaN(p)) {
-      if      (p >= 90) cell.setBackground('#C6EFCE').setFontColor('#276221');
-      else if (p >= 70) cell.setBackground('#FFEB9C').setFontColor('#9C5700');
-      else              cell.setBackground('#FFC7CE').setFontColor('#9C0006');
+    const adh   = parseInt(sumRows[i][4]);   // adherence % string → number
+    const score = sumRows[i][5];             // Score (0–10)
+    const adhCell   = sheet.getRange(ds+i, 5);
+    const scoreCell = sheet.getRange(ds+i, 6);
+
+    let bg, fg;
+    if (!isNaN(adh)) {
+      if      (adh >= 90) { bg = '#C6EFCE'; fg = '#276221'; }
+      else if (adh >= 70) { bg = '#FFEB9C'; fg = '#9C5700'; }
+      else                { bg = '#FFC7CE'; fg = '#9C0006'; }
+      adhCell.setBackground(bg).setFontColor(fg);
+    }
+    if (typeof score === 'number') {
+      const sbg = score === 10 ? '#C6EFCE' : score >= 6 ? '#FFEB9C' : '#FFC7CE';
+      const sfg = score === 10 ? '#276221' : score >= 6 ? '#9C5700' : '#9C0006';
+      scoreCell.setBackground(sbg).setFontColor(sfg).setFontWeight('bold');
     }
   }
 
@@ -470,7 +513,9 @@ function writeToScorecard_(leads, mtdRange, today) {
 
       const fu = vaFU[vaName];
       if (fu && fu.expected > 0) {
-        sheet.getRange(SC_FFUP_ROW, col).setValue(fu.filled/fu.expected).setNumberFormat('0%');
+        const adh = fu.filled / fu.expected;
+        sheet.getRange(SC_FFUP_ROW,       col).setValue(adh).setNumberFormat('0%');
+        sheet.getRange(SC_FFUP_SCORE_ROW, col).setValue(followUpScore_(adh));
       }
     });
 
