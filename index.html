@@ -691,21 +691,22 @@ function buildLunchSchedule(dateKey) {
   const flexOff     = Object.keys(LUNCH_DATA.flex).filter(n => offToday.includes(n));
   const flexPresent = Object.keys(LUNCH_DATA.flex).filter(n => !flexOff.includes(n));
 
-  // Load-balance reassignment for orphaned core VAs
+  // Reassign orphaned core VAs (from off flex VAs) to present flex VAs,
+  // balanced by total lead load so no present flex VA is overloaded overall
   const reassigned = {};
   if (flexOff.length && flexPresent.length) {
     const allVA = [...LUNCH_DATA.est, ...LUNCH_DATA.pst];
-    const load  = {};
+    const dayLoad = {};
     flexPresent.forEach(fn => {
-      load[fn] = LUNCH_DATA.flex[fn].covers.reduce((s,c) => {
+      dayLoad[fn] = LUNCH_DATA.flex[fn].covers.reduce((s,c) => {
         const va = allVA.find(v => v.name === c); return s + (va ? va.leads : 0);
       }, 0);
     });
     flexOff.flatMap(fn => LUNCH_DATA.flex[fn].covers).forEach(core => {
-      const target = [...flexPresent].sort((a,b) => load[a]-load[b])[0];
+      const target = [...flexPresent].sort((a,b) => dayLoad[a]-dayLoad[b])[0];
       reassigned[core] = target;
       const va = allVA.find(v => v.name === core);
-      load[target] += va ? va.leads : 0;
+      dayLoad[target] += va ? va.leads : 0;
     });
   }
 
@@ -719,19 +720,29 @@ function buildLunchSchedule(dateKey) {
 
   // 5 fixed 1-hour slots: 11 AM – 4 PM EST
   const SLOT_LABELS = ['11:00–12:00','12:00–1:00','1:00–2:00','2:00–3:00','3:00–4:00'];
-  const bins = SLOT_LABELS.map(label => ({label, vas:[], totalLeads:0}));
+  // Each bin tracks total leads AND per-flex-VA load so neither axis gets imbalanced
+  const bins = SLOT_LABELS.map(label => ({label, vas:[], totalLeads:0, flexLoad:{}}));
 
-  // Greedy balanced bin-packing: assign heaviest VA to lightest bin each round
+  // Dual-objective greedy: sort heaviest VAs first, assign to the bin with
+  // lowest combined score = slotTotalLeads + coveringFlexVA's load in that slot.
+  // This spreads lead volume evenly across slots AND prevents one flex VA from
+  // having to cover multiple simultaneous lunches.
   const present = LUNCH_DATA.est.filter(va => !flexOff.includes(va.name))
     .slice().sort((a,b) => b.leads - a.leads);
 
   present.forEach(va => {
-    const target = bins.slice().sort((a,b) => a.totalLeads - b.totalLeads)[0];
-    target.vas.push({...va, coveredBy: coverageMap[va.name]||null});
+    const flexName = coverageMap[va.name] || null;
+    const target = bins.slice().sort((a,b) => {
+      const sa = a.totalLeads + (flexName ? (a.flexLoad[flexName]||0) : 0);
+      const sb = b.totalLeads + (flexName ? (b.flexLoad[flexName]||0) : 0);
+      return sa - sb;
+    })[0];
+    target.vas.push({...va, coveredBy: flexName});
     target.totalLeads += va.leads;
+    if (flexName) target.flexLoad[flexName] = (target.flexLoad[flexName]||0) + va.leads;
   });
 
-  const slots = bins.map(b => ({time: b.label, vas: b.vas, totalLeads: b.totalLeads}));
+  const slots = bins.map(b => ({time:b.label, vas:b.vas, totalLeads:b.totalLeads, flexLoad:b.flexLoad}));
 
   return {dateKey, slots, pst:LUNCH_DATA.pst, flexPresent, flexOff, reassigned, coverageMap};
 }
