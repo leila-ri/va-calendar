@@ -10,12 +10,6 @@
 //  "MTD Booking Rate"     — per-VA booking stats + score for the current month
 //  "Follow-Up Adherence"  — per-VA cadence compliance, date-based
 //
-// ALSO WRITES into "VA Team Scorecard" tab (same spreadsheet):
-//  Row 4  — VA names (read-only — used to find each VA's column)
-//  Row 7  — MTD Booking Rate %
-//  Row 8  — Follow-Up Adherence %
-//  Row 9  — Booking Rate Score (0–10)
-//
 // FOLLOW-UP DATE LOGIC:
 //  Working days = Monday–Saturday.  Sundays + US federal holidays skipped.
 //  Slot K due = lead date + 1 working day
@@ -35,13 +29,6 @@
 
 // ── CONFIG ──────────────────────────────────────────────────
 const SOURCE_SS_ID         = '1Kd0smsW26IJR1H5kJ0MP0kH8jPOTazo2_TbLEkgmbRs';
-const SCORECARD_SS_ID      = '1z6mLBx2gfoqFpSyjgg4C_69oB3eOT3lBmRynKWIwybk';
-const SCORECARD_SHEET      = 'VA Team Scorecard';
-const SC_VA_ROW            = 4;   // row with VA names (read-only)
-const SC_BOOKING_ROW       = 7;   // booking rate %
-const SC_FFUP_ROW          = 8;   // follow-up adherence %
-const SC_BOOKING_SCORE_ROW = 9;   // booking rate score (0–10)
-const SC_FFUP_SCORE_ROW    = 10;  // follow-up adherence score (0–10)
 
 const MAIN_SHEETS = ['ROOF, MAIN', 'HVAC, MAIN', 'GUTTER, Main', 'WINDOWS, MAIN'];
 const BOOKING_KPI = 0.45;
@@ -68,7 +55,6 @@ function refreshLiveStats() {
 
   writeBookingRateSheet_(leads, mtdRange, today);
   writeFollowUpSheet_(leads, mtdRange, today);
-  writeToScorecard_(leads, mtdRange, today);
 
   Logger.log('Live stats updated — ' + today.toISOString());
 }
@@ -448,84 +434,6 @@ function writeFollowUpSheet_(leads, mtdRange, today) {
 }
 
 // ============================================================
-// SCORECARD ROW WRITE
-// ============================================================
-
-function writeToScorecard_(leads, mtdRange, today) {
-  try {
-    const ss    = SpreadsheetApp.openById(SCORECARD_SS_ID);
-    const sheet = ss.getSheetByName(SCORECARD_SHEET);
-    if (!sheet) { Logger.log('Scorecard sheet not found: ' + SCORECARD_SHEET); return; }
-
-    const lastCol  = sheet.getLastColumn();
-    if (lastCol < 1) return;
-    const todayMid = midnight_(today);
-
-    const EXCL_DISP = new Set(['osa','unqualified','dup lead','# issue','#issue']);
-
-    // ── Booking rate per VA ────────────────────────────────
-    const vaBook = {};
-    leads
-      .filter(l => inRange_(l.dateIn, mtdRange) || inRange_(l.dateConf, mtdRange))
-      .forEach(l => {
-        if (!vaBook[l.va]) vaBook[l.va] = { booked:0, qualified:0 };
-        if (l.bucket === 'booked') vaBook[l.va].booked++;
-        const isSpecial = EXCLUDE_CLIENT_HANDLES_ACCTS.includes(l.subaccount);
-        const excluded  = (l.bucket === 'cancelled') || EXCL_DISP.has(l.disp) ||
-                          (isSpecial && l.bucket === 'clientHandles');
-        if (!excluded) vaBook[l.va].qualified++;
-      });
-
-    // ── Follow-up adherence per VA (mirrors writeFollowUpSheet_) ─
-    const vaFU = {};
-    leads.forEach(l => {
-      if (l.bucket === 'booked') return;
-      if (!inRange_(l.dateIn, mtdRange) && !inRange_(l.dateConf, mtdRange)) return;
-      if (!l.dateIn) return;
-
-      const special    = isSpecialStatusLead_(l);
-      const lastFilled = lastFilledIdx_(l);
-      if (special && lastFilled < 0) return;
-
-      if (!vaFU[l.va]) vaFU[l.va] = { filled:0, expected:0 };
-      const startSlot = special ? lastFilled + 2 : 1;
-
-      for (let slot = startSlot; slot <= 5; slot++) {
-        if (midnight_(addWorkingDays_(l.dateIn, slot)) > todayMid) break;
-        vaFU[l.va].expected++;
-        if (l.followUps[slot - 1]) vaFU[l.va].filled++;
-      }
-    });
-
-    // ── Write to scorecard ────────────────────────────────
-    const vaRow = sheet.getRange(SC_VA_ROW, 1, 1, lastCol).getValues()[0];
-    vaRow.forEach((cell, i) => {
-      const vaName = String(cell).trim();
-      if (!vaName) return;
-      const col = i + 1;
-
-      const bk = vaBook[vaName];
-      if (bk && bk.qualified > 0) {
-        const rate = bk.booked / bk.qualified;
-        sheet.getRange(SC_BOOKING_ROW,       col).setValue(rate).setNumberFormat('0%');
-        sheet.getRange(SC_BOOKING_SCORE_ROW, col).setValue(bookingScore_(rate));
-      }
-
-      const fu = vaFU[vaName];
-      if (fu && fu.expected > 0) {
-        const adh = fu.filled / fu.expected;
-        sheet.getRange(SC_FFUP_ROW,       col).setValue(adh).setNumberFormat('0%');
-        sheet.getRange(SC_FFUP_SCORE_ROW, col).setValue(followUpScore_(adh));
-      }
-    });
-
-    Logger.log('Scorecard updated');
-  } catch(e) {
-    Logger.log('writeToScorecard_ error: ' + e.message);
-  }
-}
-
-// ============================================================
 // WORKING-DAY HELPERS
 // ============================================================
 
@@ -706,7 +614,7 @@ function setupLiveTrigger() {
   });
   ScriptApp.newTrigger('refreshLiveStats').timeBased().everyMinutes(1).create();
   SpreadsheetApp.getUi().alert(
-    '✅ Live trigger set!\n\nSheets + scorecard rows update every minute.\n\nTo stop: menu → Stop Auto-Refresh.'
+    '✅ Live trigger set!\n\nSheets update every minute.\n\nTo stop: menu → Stop Auto-Refresh.'
   );
 }
 
