@@ -20,8 +20,13 @@
 // ============================================================
 
 // ── IDs & SHEET NAMES ───────────────────────────────────────
-const SOURCE_SS_ID = '1Kd0smsW26IJR1H5kJ0MP0kH8jPOTazo2_TbLEkgmbRs';
-const MAIN_SHEETS  = ['ROOF, MAIN', 'HVAC, MAIN', 'GUTTER, Main', 'WINDOWS, MAIN'];
+const SOURCE_SS_ID     = '1Kd0smsW26IJR1H5kJ0MP0kH8jPOTazo2_TbLEkgmbRs';
+const MAIN_SHEETS      = ['ROOF, MAIN', 'HVAC, MAIN', 'GUTTER, Main', 'WINDOWS, MAIN'];
+const SCORECARD_SS_ID  = '1z6mLBx2gfoqFpSyjgg4C_69oB3eOT3lBmRynKWIwybk';
+const SCORECARD_SHEET  = 'VA Team Scorecard';
+const SC_VA_ROW        = 4;   // row that holds VA names
+const SC_BOOKING_ROW   = 7;   // row to write MTD booking rate
+const SC_FFUP_ROW      = 8;   // row to write follow-up adherence %
 
 // ── SOURCE COLUMN INDICES (0-based, A=0 … O=14) ─────────────
 const COL_VA         = 0;   // A
@@ -79,6 +84,7 @@ function refreshAll() {
   updateCurrentWeekStats(weekLeads, prevWeek, today);
   updateMTDStats(leads, mtdRange, today);
   updateFollowUpAdherence(leads, mtdRange, today);
+  updateScorecard(leads, mtdRange, today);
 
   Logger.log('Done!');
   SpreadsheetApp.getUi().alert('Done! All sheets have been refreshed.');
@@ -92,6 +98,7 @@ function refreshLiveSheets() {
   const { leads } = loadAllLeads();
   updateMTDStats(leads, mtdRange, today);
   updateFollowUpAdherence(leads, mtdRange, today);
+  updateScorecard(leads, mtdRange, today);
 
   Logger.log('Live refresh done — ' + today.toISOString());
 }
@@ -591,13 +598,13 @@ function updateMTDStats(allLeads, mtdRange, today) {
 
   const ds = 7;
   for (let i = 0; i < rows.length; i++) {
+    const kpi   = rows[i][5];  // '✓ Met' / '✗ Below' / '—' — use computed value, not getValue()
     const kCell = sheet.getRange(ds+i, 6);
     const rCell = sheet.getRange(ds+i, 5);
-    const v = kCell.getValue();
-    if (v === '✓ Met') {
+    if (kpi === '✓ Met') {
       kCell.setBackground('#C6EFCE').setFontColor('#276221');
       rCell.setBackground('#C6EFCE').setFontColor('#276221');
-    } else if (v === '✗ Below') {
+    } else if (kpi === '✗ Below') {
       kCell.setBackground('#FFC7CE').setFontColor('#9C0006');
       rCell.setBackground('#FFC7CE').setFontColor('#9C0006');
     }
@@ -692,8 +699,8 @@ function updateFollowUpAdherence(allLeads, mtdRange, today) {
 
   const ds = 6;
   for (let i = 0; i < sumRows.length; i++) {
+    const p    = parseInt(sumRows[i][9]);  // Adherence % at index 9 — use computed value, not getValue()
     const cell = sheet.getRange(ds+i, 10);
-    const p    = parseInt(cell.getValue());
     if (!isNaN(p)) {
       if      (p >= 90) cell.setBackground('#C6EFCE').setFontColor('#276221');
       else if (p >= 70) cell.setBackground('#FFEB9C').setFontColor('#9C5700');
@@ -703,6 +710,84 @@ function updateFollowUpAdherence(allLeads, mtdRange, today) {
   sheet.autoResizeColumns(1, W);
   sheet.setFrozenRows(5);
   Logger.log('Follow-Up Adherence: ' + Object.keys(vaFU).length + ' VAs');
+}
+
+// ============================================================
+// SCORECARD WRITE  — pushes MTD booking rate + follow-up adherence
+// into the "VA Team Scorecard" sheet (separate spreadsheet).
+// Row 4 = VA names; Row 7 = booking rate; Row 8 = follow-up %.
+// Values written as decimals (0.52) so % cell formatting shows correctly.
+// ============================================================
+
+function updateScorecard(allLeads, mtdRange, today) {
+  try {
+    const ss    = SpreadsheetApp.openById(SCORECARD_SS_ID);
+    const sheet = ss.getSheetByName(SCORECARD_SHEET);
+    if (!sheet) { Logger.log('Scorecard sheet not found: ' + SCORECARD_SHEET); return; }
+
+    // ── MTD leads ──────────────────────────────────────────
+    const mtdLeads = allLeads.filter(l =>
+      inRange(l.dateIn, mtdRange) || inRange(l.dateConf, mtdRange)
+    );
+
+    // ── Booking rate per VA (mirrors updateMTDStats logic) ─
+    const EXCL_DISP = new Set(['osa','unqualified','dup lead','# issue','#issue']);
+    const vaBook = {};
+    mtdLeads.forEach(l => {
+      if (!vaBook[l.va]) vaBook[l.va] = { booked: 0, qual: 0 };
+      if (l.bucket === 'booked') vaBook[l.va].booked++;
+      const isSpecial  = EXCLUDE_CLIENT_HANDLES_ACCTS.includes(l.subaccount);
+      const excluded   = (l.bucket === 'cancelled') ||
+                         EXCL_DISP.has(l.disp) ||
+                         (isSpecial && l.bucket === 'clientHandles');
+      if (!excluded) vaBook[l.va].qual++;
+    });
+
+    // ── Follow-up adherence per VA (mirrors updateFollowUpAdherence) ─
+    const activeLeads = mtdLeads.filter(l =>
+      l.bucket !== 'booked' && l.bucket !== 'cancelled' && !EXCL_DISP.has(l.disp)
+    );
+    const vaFU = {};
+    activeLeads.forEach(l => {
+      if (!vaFU[l.va]) vaFU[l.va] = { filled: 0, exp: 0 };
+      const days   = l.dateIn ? Math.floor((today - l.dateIn) / 86400000) : 0;
+      const expect = Math.min(5, Math.max(1, days + 1));
+      vaFU[l.va].exp += expect;
+      for (let k = 0; k < expect; k++) {
+        if (l.followUps[k]) vaFU[l.va].filled++;
+      }
+    });
+
+    // ── Read VA names from row 4 ───────────────────────────
+    const lastCol = sheet.getLastColumn();
+    if (lastCol < 1) return;
+    const vaRow = sheet.getRange(SC_VA_ROW, 1, 1, lastCol).getValues()[0];
+
+    // ── Write per-column ───────────────────────────────────
+    vaRow.forEach((cell, i) => {
+      const vaName = String(cell).trim();
+      if (!vaName) return;
+      const col = i + 1;
+
+      const bk = vaBook[vaName];
+      if (bk && bk.qual > 0) {
+        sheet.getRange(SC_BOOKING_ROW, col)
+          .setValue(bk.booked / bk.qual)
+          .setNumberFormat('0%');
+      }
+
+      const fu = vaFU[vaName];
+      if (fu && fu.exp > 0) {
+        sheet.getRange(SC_FFUP_ROW, col)
+          .setValue(fu.filled / fu.exp)
+          .setNumberFormat('0%');
+      }
+    });
+
+    Logger.log('Scorecard updated — ' + today.toISOString());
+  } catch(e) {
+    Logger.log('updateScorecard error: ' + e.message);
+  }
 }
 
 // ============================================================
