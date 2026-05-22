@@ -175,6 +175,33 @@ body{font-family:var(--font);background:var(--bg);color:var(--tx);line-height:1.
 .toast.error{background:var(--red);color:#fff}
 .toast.success{background:var(--green);color:#fff}
 
+/* === LUNCH SCHEDULE === */
+.lunch-mo{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;display:none;align-items:center;justify-content:center;padding:16px}
+.lunch-mo.open{display:flex}
+.lunch-mi{background:var(--sf);border-radius:16px;max-width:900px;width:100%;max-height:94vh;overflow-y:auto;position:relative;box-shadow:0 24px 48px rgba(0,0,0,.25)}
+.lunch-hdr{background:var(--charcoal);color:var(--brand);padding:18px 24px;border-radius:16px 16px 0 0;display:flex;justify-content:space-between;align-items:center}
+.lunch-hdr h2{font-size:16px;font-weight:700;letter-spacing:-.3px}
+.lunch-hdr-right{display:flex;gap:8px;align-items:center}
+.lunch-hdr-right button{background:none;border:1px solid rgba(254,218,104,.3);color:rgba(254,218,104,.7);font-family:var(--font);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer}
+.lunch-hdr-right button:hover{border-color:var(--brand);color:var(--brand)}
+.lunch-body{padding:20px 24px}
+.lunch-canvas-wrap{border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;margin-bottom:16px;background:var(--sf)}
+.lunch-canvas-wrap canvas{display:block;width:100%;height:auto}
+.lunch-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.lunch-actions button{font-family:var(--font);font-size:12px;padding:7px 14px;border-radius:var(--r);border:1.5px solid var(--bd);background:var(--sf);color:var(--tx);cursor:pointer;font-weight:600}
+.lunch-actions button:hover{background:var(--sf2)}
+.lunch-actions .btn-slack{background:var(--charcoal);color:var(--brand);border-color:var(--charcoal)}
+.lunch-actions .btn-slack:hover{opacity:.85}
+.lunch-actions .btn-dl{border-color:var(--charcoal);color:var(--charcoal)}
+.lunch-cfg{background:var(--sf2);border:1px solid var(--bd);border-radius:var(--r);padding:12px 14px;font-size:12px}
+.lunch-cfg-row{display:flex;gap:8px;align-items:center;margin-top:8px}
+.lunch-cfg label{font-weight:600;color:var(--mu);font-size:11px;white-space:nowrap;min-width:90px}
+.lunch-cfg input{flex:1;padding:6px 10px;border:1px solid var(--bd);border-radius:5px;font-family:var(--font);font-size:12px;background:var(--sf);color:var(--tx)}
+.lunch-cfg input:focus{outline:none;border-color:var(--charcoal)}
+.lunch-status{font-size:11px;color:var(--mu);margin-top:6px}
+.btn-lunch{background:var(--brand-light);color:var(--charcoal);border-color:var(--brand-dark)!important;font-weight:600!important}
+.btn-lunch:hover{background:var(--brand)!important}
+
 @media(max-width:860px){
   .main{grid-template-columns:1fr}
   .cell{min-height:68px;padding:4px 5px}
@@ -211,6 +238,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--tx);line-height:1.
     <span class="sync-pill"><span class="sync-dot" id="sd"></span><span id="st"></span></span>
     <button onclick="fullSync()" id="sb">Refresh</button>
     <button class="btn-bamboo" onclick="window.open('https://roofignite.bamboohr.com/calendar','_blank')">BambooHR ↗</button>
+    <button class="btn-lunch" onclick="openLunch()">🍱 Lunch</button>
   </div>
 </div>
 
@@ -289,6 +317,39 @@ body{font-family:var(--font);background:var(--bg);color:var(--tx);line-height:1.
     <div class="mi-foot"><button onclick="closeM()">Close</button></div>
   </div>
 </div>
+<!-- LUNCH MODAL -->
+<div class="lunch-mo" id="lunch-mo" onclick="if(event.target===this)closeLunch()">
+  <div class="lunch-mi">
+    <div class="lunch-hdr">
+      <h2>🍱 Lunch Schedule</h2>
+      <div class="lunch-hdr-right">
+        <button onclick="refreshLunch()">↻ Refresh</button>
+        <button onclick="closeLunch()">✕ Close</button>
+      </div>
+    </div>
+    <div class="lunch-body">
+      <div class="lunch-canvas-wrap"><canvas id="lunch-canvas"></canvas></div>
+      <div class="lunch-actions">
+        <button class="btn-dl" onclick="downloadLunch()">⬇ Download PNG</button>
+        <button class="btn-slack" onclick="postLunchToSlack()">✉ Approve &amp; Post to Slack</button>
+        <span id="lunch-post-status" style="font-size:11px;color:var(--mu)"></span>
+      </div>
+      <div class="lunch-cfg">
+        <div style="font-weight:600;color:var(--charcoal);font-size:12px">Slack Configuration</div>
+        <div class="lunch-cfg-row">
+          <label>Webhook URL</label>
+          <input type="password" id="lunch-wh" placeholder="https://hooks.slack.com/services/..." oninput="saveLunchCfg()">
+        </div>
+        <div class="lunch-cfg-row">
+          <label>Channel</label>
+          <input type="text" id="lunch-ch" placeholder="#lunch-breaks (optional)" style="max-width:220px" oninput="saveLunchCfg()">
+        </div>
+        <div class="lunch-status" id="lunch-cfg-status"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -341,7 +402,7 @@ function showApp(){
   const role=currentUser.isManager?'<span class="user-role">Manager</span>':'';
   pill.innerHTML=pic+currentUser.name+role;
   document.querySelectorAll('.mgr-only').forEach(el=>{el.style.display=currentUser.isManager?'':'none'});
-  render();fullSync();
+  render();fullSync();initLunchNotif();
 }
 function signOut(){google.accounts.id.disableAutoSelect();sessionStorage.clear();currentUser=null;document.getElementById('main-app').style.display='none';showLogin()}
 function parseJwt(t){try{const b=t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');return JSON.parse(decodeURIComponent(atob(b).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join('')))}catch(e){return null}}
@@ -591,6 +652,339 @@ function closeM(){document.getElementById('modal').classList.remove('open')}
 function chMo(d){cM+=d;if(cM>11){cM=0;cY++}if(cM<0){cM=11;cY--}render();fullSync()}
 function goNow(){cM=now.getMonth();cY=now.getFullYear();render();fullSync()}
 function toast(m,t){const e=document.getElementById('toast');e.textContent=m;e.className='toast show'+(t?' '+t:'');setTimeout(()=>e.classList.remove('show'),3500)}
+
+// === LUNCH SCHEDULE ===========================================================
+const LUNCH_DATA = {
+  est: [
+    {name:'Jell',    leads:349, type:'core'},
+    {name:'Mark',    leads:237, type:'core'},
+    {name:'Jan',     leads:209, type:'core'},
+    {name:'Bea',     leads:208, type:'core'},
+    {name:'Rovy',    leads:193, type:'core'},
+    {name:'Myra',    leads:168, type:'core'},
+    {name:'Ann',     leads:162, type:'flex'},
+    {name:'Maykee',  leads:159, type:'flex'},
+    {name:'Ena',     leads:143, type:'core'},
+    {name:'Klaie',   leads:134, type:'core'},
+    {name:'Reyn',    leads:126, type:'flex'},
+    {name:'Veronica',leads:124, type:'core'},
+    {name:'Rincee',  leads:79,  type:'core'},
+    {name:'Lou',     leads:72,  type:'core'},
+    {name:'Kirk',    leads:60,  type:'core'},
+    {name:'Dan',     leads:55,  type:'core'},
+    {name:'Jayson',  leads:52,  type:'core'},
+  ],
+  pst: [
+    {name:'Ed',      leads:236},
+    {name:'Jessica', leads:140},
+    {name:'Neil',    leads:72},
+  ],
+  flex: {
+    Ann:    {covers:['Ed','Mark','Myra']},
+    Maykee: {covers:['Kirk','Jayson','Lou','Jell','Rovy','Jessica','Jan']},
+    Reyn:   {covers:['Bea','Klaie','Ena','Rincee','Dan','Neil','Veronica']},
+  }
+};
+
+function buildLunchSchedule(dateKey) {
+  const offToday     = flexOffs(dateKey);
+  const flexOff      = Object.keys(LUNCH_DATA.flex).filter(n => offToday.includes(n));
+  const flexPresent  = Object.keys(LUNCH_DATA.flex).filter(n => !flexOff.includes(n));
+
+  // Load-balance reassignment for orphaned core VAs
+  const reassigned = {};
+  if (flexOff.length && flexPresent.length) {
+    const allVA = [...LUNCH_DATA.est, ...LUNCH_DATA.pst];
+    const load  = {};
+    flexPresent.forEach(fn => {
+      load[fn] = LUNCH_DATA.flex[fn].covers.reduce((s,c) => {
+        const va = allVA.find(v => v.name === c); return s + (va ? va.leads : 0);
+      }, 0);
+    });
+    flexOff.flatMap(fn => LUNCH_DATA.flex[fn].covers).forEach(core => {
+      const target = [...flexPresent].sort((a,b) => load[a]-load[b])[0];
+      reassigned[core] = target;
+      const va = allVA.find(v => v.name === core);
+      load[target] += va ? va.leads : 0;
+    });
+  }
+
+  // Coverage map: coreName → which flex VA covers them today
+  const coverageMap = {};
+  Object.entries(LUNCH_DATA.flex).forEach(([fn, fd]) => {
+    fd.covers.forEach(core => {
+      coverageMap[core] = flexOff.includes(fn) ? (reassigned[core] || '—') : fn;
+    });
+  });
+
+  // Filter to present VAs, sort by leads desc, 2 per 30-min slot from 11 AM
+  const present = LUNCH_DATA.est.filter(va => !flexOff.includes(va.name))
+    .sort((a,b) => b.leads - a.leads);
+
+  const slots = [];
+  for (let i = 0; i < present.length; i += 2) {
+    const totalMins = 11*60 + Math.floor(i/2)*30;
+    const h = Math.floor(totalMins/60), m = totalMins%60;
+    const ampm = h < 12 ? 'AM' : 'PM';
+    const time  = `${h > 12 ? h-12 : h}:${String(m).padStart(2,'0')} ${ampm}`;
+    slots.push({
+      time,
+      vas: present.slice(i, i+2).map(va => ({...va, coveredBy: coverageMap[va.name]||null}))
+    });
+  }
+
+  return {dateKey, slots, pst:LUNCH_DATA.pst, flexPresent, flexOff, reassigned, coverageMap};
+}
+
+function rr(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
+}
+
+function renderLunchCanvas(schedule) {
+  const W=860, slotH=54, secH=34, hdrH=78, ftrH=44, flexH=40, pstH=54;
+  const flexKeys = Object.keys(LUNCH_DATA.flex);
+  const H = hdrH + secH + schedule.slots.length*slotH + secH + pstH + secH + flexKeys.length*flexH + ftrH;
+
+  const cv = document.getElementById('lunch-canvas');
+  cv.width=W; cv.height=H;
+  const x = cv.getContext('2d');
+  const C = {
+    ch:'#2A1507', br:'#FEDA68', bg:'#FAFAF7', bg2:'#F5F0E8',
+    mu:'#7A7567', tx:'#1C1C1C', bd:'#E8E5DE', wh:'#FFFFFF',
+    red:'#B9432E', rbg:'#FDF0ED', grn:'#4A7C2E', gbg:'#F0F6EA',
+    tel:'#2E7D7E', tbg:'#ECF6F6', org:'#C06D1F', blu:'#2E6B9B',
+  };
+  const F = (sz, b) => `${b?'700 ':'400 '}${sz}px "DM Sans",-apple-system,sans-serif`;
+  let y = 0;
+
+  // ── Header ──
+  x.fillStyle=C.ch; x.fillRect(0,0,W,hdrH);
+  x.font=F(20,true); x.fillStyle=C.br; x.textBaseline='middle'; x.textAlign='left';
+  x.fillText('🍱  LUNCH SCHEDULE', 24, hdrH/2);
+  const dStr = new Date(schedule.dateKey+'T00:00:00')
+    .toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  x.font=F(13,false); x.fillStyle='rgba(254,218,104,.65)'; x.textAlign='right';
+  x.fillText(dStr, W-24, hdrH/2); x.textAlign='left';
+  y += hdrH;
+
+  const secHdr = (txt) => {
+    x.fillStyle=C.bg2; x.fillRect(0,y,W,secH);
+    x.fillStyle=C.bd; x.fillRect(0,y+secH-1,W,1);
+    x.font=F(9,true); x.fillStyle=C.mu; x.textBaseline='middle';
+    x.fillText(txt.toUpperCase(), 24, y+secH/2); y+=secH;
+  };
+
+  // ── EST section ──
+  const lastT = schedule.slots[schedule.slots.length-1]?.time || '—';
+  secHdr(`EST VAs  ·  11:00 AM – ${lastT} EST  ·  Sorted by lead volume  ·  2 per slot`);
+
+  schedule.slots.forEach((slot, si) => {
+    const sy=y+si*slotH;
+    x.fillStyle = si%2===0 ? C.wh : C.bg; x.fillRect(0,sy,W,slotH);
+    x.fillStyle=C.bd; x.fillRect(0,sy+slotH-1,W,1);
+
+    // time
+    x.font=F(13,true); x.fillStyle=C.ch; x.textBaseline='middle';
+    x.fillText(slot.time, 20, sy+slotH/2);
+    x.fillStyle=C.bd; x.fillRect(112,sy+10,1,slotH-20);
+
+    const colW = (W-128)/2;
+    slot.vas.forEach((va, vi) => {
+      const cx2 = 128 + vi*colW;
+
+      // lead bubble behind name
+      x.font=F(13,true);
+      const nw = x.measureText(va.name).width;
+      x.fillStyle = va.type==='flex' ? '#FEF5EC' : '#F5F0E8';
+      rr(x, cx2-4, sy+slotH/2-18, nw+12, 20, 4); x.fill();
+      x.fillStyle=C.tx; x.fillText(va.name, cx2, sy+slotH/2-8);
+
+      // leads count
+      x.font=F(11,false); x.fillStyle=C.mu;
+      x.fillText(`${va.leads.toLocaleString()} leads`, cx2, sy+slotH/2+9);
+
+      // flex label
+      if (va.type==='flex') {
+        x.font=F(9,true); x.fillStyle=C.org;
+        x.fillText('FLEX', cx2, sy+slotH/2+22);
+      }
+
+      // covered-by badge
+      if (va.coveredBy && va.type==='core') {
+        x.font=F(10,false);
+        const bw = x.measureText(va.coveredBy).width+12;
+        const bx = cx2+nw+14, by = sy+slotH/2-18;
+        rr(x,bx,by,bw,17,4); x.fillStyle=C.tbg; x.fill();
+        x.fillStyle=C.tel; x.fillText(va.coveredBy, bx+6, by+9);
+      }
+    });
+  });
+  y += schedule.slots.length*slotH;
+
+  // ── PST section ──
+  secHdr(`PST VAs  ·  Fixed 4:00 PM – 5:00 PM PST`);
+  x.fillStyle=C.wh; x.fillRect(0,y,W,pstH);
+  x.fillStyle=C.bd; x.fillRect(0,y+pstH-1,W,1);
+  x.font=F(13,true); x.fillStyle=C.ch; x.textBaseline='middle';
+  x.fillText('4:00 PM', 20, y+pstH/2);
+  x.fillStyle=C.bd; x.fillRect(112,y+10,1,pstH-20);
+  const pColW=(W-128)/schedule.pst.length;
+  schedule.pst.forEach((va,i) => {
+    const px=128+i*pColW;
+    x.font=F(13,true); x.fillStyle=C.tx; x.fillText(va.name, px, y+pstH/2-9);
+    x.font=F(11,false); x.fillStyle=C.mu; x.fillText(`${va.leads.toLocaleString()} leads`, px, y+pstH/2+9);
+    x.font=F(9,true); x.fillStyle=C.blu; x.fillText('PST', px, y+pstH/2+23);
+  });
+  y += pstH;
+
+  // ── Flex coverage section ──
+  secHdr('FLEX COVERAGE TODAY');
+  flexKeys.forEach((fn,fi) => {
+    const fy=y+fi*flexH, isOff=schedule.flexOff.includes(fn);
+    x.fillStyle=fi%2===0?C.wh:C.bg; x.fillRect(0,fy,W,flexH);
+    x.fillStyle=C.bd; x.fillRect(0,fy+flexH-1,W,1);
+
+    // status badge
+    const bw=isOff?36:30;
+    rr(x,20,fy+(flexH-20)/2,bw,20,4);
+    x.fillStyle=isOff?C.rbg:C.gbg; x.fill();
+    x.font=F(10,true); x.fillStyle=isOff?C.red:C.grn; x.textBaseline='middle';
+    x.fillText(isOff?'OFF':'ON', 20+(isOff?8:7), fy+flexH/2);
+
+    x.font=F(13,true); x.fillStyle=C.ch;
+    x.fillText(fn, 68, fy+flexH/2);
+
+    x.font=F(12,false); x.fillStyle=isOff?C.red:C.mu;
+    if (isOff) {
+      const txt = LUNCH_DATA.flex[fn].covers
+        .map(c => `${c} → ${schedule.reassigned[c]||'?'}`).join('   ');
+      x.fillText(txt, 188, fy+flexH/2);
+    } else {
+      const extra = Object.entries(schedule.reassigned).filter(([,v])=>v===fn).map(([k])=>k);
+      const all   = [...LUNCH_DATA.flex[fn].covers, ...extra];
+      x.fillText('Covering: '+all.join(', '), 188, fy+flexH/2);
+    }
+  });
+  y += flexKeys.length*flexH;
+
+  // ── Footer ──
+  x.fillStyle=C.ch; x.fillRect(0,y,W,ftrH);
+  x.font=F(11,false); x.fillStyle='rgba(254,218,104,.5)'; x.textBaseline='middle';
+  x.fillText('RoofIgnite  ·  Generated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}), 24, y+ftrH/2);
+  x.textAlign='right';
+  const estN=schedule.slots.reduce((s,sl)=>s+sl.vas.length,0);
+  x.fillText(`${estN} EST  ·  ${schedule.pst.length} PST VAs`, W-24, y+ftrH/2);
+  x.textAlign='left';
+}
+
+let lunchSched = null;
+
+function openLunch() {
+  const today = dk(now.getFullYear(), now.getMonth(), now.getDate());
+  lunchSched  = buildLunchSchedule(today);
+  renderLunchCanvas(lunchSched);
+  loadLunchCfg();
+  document.getElementById('lunch-mo').classList.add('open');
+}
+function refreshLunch() {
+  if (!lunchSched) return;
+  lunchSched = buildLunchSchedule(lunchSched.dateKey);
+  renderLunchCanvas(lunchSched);
+}
+function closeLunch() { document.getElementById('lunch-mo').classList.remove('open'); }
+
+function downloadLunch() {
+  if (!lunchSched) return;
+  const a = document.createElement('a');
+  a.download = `lunch-schedule-${lunchSched.dateKey}.png`;
+  a.href = document.getElementById('lunch-canvas').toDataURL('image/png');
+  a.click();
+}
+
+async function postLunchToSlack() {
+  const wh = (localStorage.getItem('lunch_wh')||'').trim();
+  if (!wh) { toast('Add your Slack webhook URL first', 'error'); return; }
+  if (!lunchSched) return;
+  if (!confirm('Post today\'s lunch schedule to Slack?')) return;
+
+  const el = document.getElementById('lunch-post-status');
+  el.textContent = 'Sending…';
+  try {
+    // Slack webhooks require server-side or no-cors; use payload= form encoding
+    const payload = 'payload=' + encodeURIComponent(JSON.stringify({blocks: buildSlackBlocks(lunchSched)}));
+    await fetch(wh, {
+      method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body: payload
+    });
+    el.textContent = '✓ Sent — check Slack';
+    localStorage.setItem('lunch_last_post', lunchSched.dateKey);
+    toast('Lunch schedule posted to Slack ✓', 'success');
+  } catch(e) {
+    el.textContent = '✕ Error: ' + e.message;
+    toast('Slack post failed: ' + e.message, 'error');
+  }
+}
+
+function buildSlackBlocks(s) {
+  const dStr = new Date(s.dateKey+'T00:00:00')
+    .toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+
+  const estText = s.slots.map(sl => {
+    const vas = sl.vas.map(v =>
+      `*${v.name}* _(${v.leads.toLocaleString()} leads)_${v.coveredBy&&v.type==='core'?' ['+v.coveredBy+']':''}`
+    ).join('   ');
+    return `\`${sl.time}\`  ${vas}`;
+  }).join('\n');
+
+  const pstText = s.pst.map(v => `*${v.name}* _(${v.leads.toLocaleString()} leads)_`).join('   ');
+
+  const flexText = Object.keys(LUNCH_DATA.flex).map(fn => {
+    const isOff = s.flexOff.includes(fn);
+    if (isOff) {
+      return `*${fn}*: :red_circle: OFF — ` +
+        LUNCH_DATA.flex[fn].covers.map(c=>`${c}→${s.reassigned[c]||'?'}`).join(', ');
+    }
+    const extra = Object.entries(s.reassigned).filter(([,v])=>v===fn).map(([k])=>k);
+    return `*${fn}*: :large_green_circle: ON — covering ${[...LUNCH_DATA.flex[fn].covers,...extra].join(', ')}`;
+  }).join('\n');
+
+  return [
+    {type:'header',  text:{type:'plain_text', text:`🍱 Lunch Schedule — ${dStr}`, emoji:true}},
+    {type:'section', text:{type:'mrkdwn', text:`*EST VAs — Staggered 11:00 AM–${s.slots[s.slots.length-1]?.time||'—'} EST*\n${estText}`}},
+    {type:'divider'},
+    {type:'section', text:{type:'mrkdwn', text:`*PST VAs — Fixed 4:00 PM PST*\n\`4:00 PM\`  ${pstText}`}},
+    {type:'divider'},
+    {type:'section', text:{type:'mrkdwn', text:`*Flex Coverage Today*\n${flexText}`}},
+    {type:'context', elements:[{type:'mrkdwn', text:'_RoofIgnite Leave Calendar — approve & post via 🍱 Lunch_'}]}
+  ];
+}
+
+function saveLunchCfg() {
+  localStorage.setItem('lunch_wh', document.getElementById('lunch-wh').value);
+  localStorage.setItem('lunch_ch', document.getElementById('lunch-ch').value);
+  document.getElementById('lunch-cfg-status').textContent = 'Saved';
+  setTimeout(() => { document.getElementById('lunch-cfg-status').textContent = ''; }, 1500);
+}
+function loadLunchCfg() {
+  document.getElementById('lunch-wh').value = localStorage.getItem('lunch_wh') || '';
+  document.getElementById('lunch-ch').value = localStorage.getItem('lunch_ch') || '';
+}
+
+function initLunchNotif() {
+  setInterval(() => {
+    const n = new Date();
+    if (n.getHours() !== 9 || n.getMinutes() !== 0) return;
+    const key = 'lunch_notif_' + dk(n.getFullYear(), n.getMonth(), n.getDate());
+    if (localStorage.getItem(key)) return;
+    localStorage.setItem(key, '1');
+    toast('🍱 Lunch schedule ready — click Lunch to review & post', '');
+  }, 30000);
+}
 </script>
 </body>
 </html>
