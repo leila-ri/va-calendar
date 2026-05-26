@@ -237,6 +237,10 @@ function writeBookingRateSheet_(leads, mtdRange, today) {
 
   sheet.setFrozenRows(4);
   sheet.autoResizeColumns(1, W);
+  sheet.setColumnWidth(1, 80);
+  sheet.getRange(1, 1, 2, W).setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+  sheet.autoResizeRow(1);
+  sheet.autoResizeRow(2);
   Logger.log('MTD Booking Rate sheet: ' + rows.length + ' VAs');
 }
 
@@ -430,6 +434,10 @@ function writeFollowUpSheet_(leads, mtdRange, today) {
 
   sheet.setFrozenRows(4);
   sheet.autoResizeColumns(1, W);
+  sheet.setColumnWidth(1, 80);
+  sheet.getRange(1, 1, 2, W).setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+  sheet.autoResizeRow(1);
+  sheet.autoResizeRow(2);
   Logger.log('Follow-Up Adherence: ' + sumRows.length + ' VAs, ' + totalMissed + ' missed slots');
 }
 
