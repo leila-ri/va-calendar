@@ -356,21 +356,88 @@ function isFlexHol(k){return ents(k).some(e=>e.type==='holiday-flex')}
 function isCoreHol(k){return ents(k).some(e=>e.type==='holiday-core')}
 function isBl(k){return ents(k).some(e=>['holiday-flex','holiday-core','blocked-flex','blocked-core','leave','birthday'].includes(e.type))}
 
-// Adjacent check — now pod-aware
-function isAdjFlex(y,m,d){
-  const b=new Date(y,m,d-1),a=new Date(y,m,d+1);
-  const bk=dk(b.getFullYear(),b.getMonth(),b.getDate());
-  const ak=dk(a.getFullYear(),a.getMonth(),a.getDate());
-  return isFlexHol(bk)||isFlexHol(ak);
+// Adjacent check — skips off-days to find real working-day adjacency
+// Core: skip Sat/Sun. Flex: skip their scheduled off days.
+
+function prevWorkingDayCore(y,m,d){
+  // Walk backward skipping Sat(6) and Sun(0)
+  let dt=new Date(y,m,d-1);
+  for(let i=0;i<5;i++){
+    const dow=dt.getDay();
+    if(dow!==0&&dow!==6) return dk(dt.getFullYear(),dt.getMonth(),dt.getDate());
+    dt.setDate(dt.getDate()-1);
+  }
+  return null;
 }
+function nextWorkingDayCore(y,m,d){
+  let dt=new Date(y,m,d+1);
+  for(let i=0;i<5;i++){
+    const dow=dt.getDay();
+    if(dow!==0&&dow!==6) return dk(dt.getFullYear(),dt.getMonth(),dt.getDate());
+    dt.setDate(dt.getDate()+1);
+  }
+  return null;
+}
+
+function prevWorkingDayFlex(y,m,d,vaName){
+  let dt=new Date(y,m,d-1);
+  for(let i=0;i<5;i++){
+    const k=dk(dt.getFullYear(),dt.getMonth(),dt.getDate());
+    const offs=flexOffs(k);
+    const dow=dt.getDay();
+    // Skip if this is a weekend or the VA's flex off
+    if(dow!==0&&dow!==6&&(!vaName||!offs.includes(vaName))) return k;
+    dt.setDate(dt.getDate()-1);
+  }
+  return null;
+}
+function nextWorkingDayFlex(y,m,d,vaName){
+  let dt=new Date(y,m,d+1);
+  for(let i=0;i<5;i++){
+    const k=dk(dt.getFullYear(),dt.getMonth(),dt.getDate());
+    const offs=flexOffs(k);
+    const dow=dt.getDay();
+    if(dow!==0&&dow!==6&&(!vaName||!offs.includes(vaName))) return k;
+    dt.setDate(dt.getDate()+1);
+  }
+  return null;
+}
+
+// Check if a given date is the working-day-adjacent to a core holiday
 function isAdjCore(y,m,d){
-  const b=new Date(y,m,d-1),a=new Date(y,m,d+1);
-  const bk=dk(b.getFullYear(),b.getMonth(),b.getDate());
-  const ak=dk(a.getFullYear(),a.getMonth(),a.getDate());
-  return isCoreHol(bk)||isCoreHol(ak);
+  // Look at nearby dates for core holidays, then check if this date is their adjacent working day
+  for(let offset=-4;offset<=4;offset++){
+    if(offset===0) continue;
+    const check=new Date(y,m,d+offset);
+    const ck=dk(check.getFullYear(),check.getMonth(),check.getDate());
+    if(isCoreHol(ck)){
+      const prev=prevWorkingDayCore(check.getFullYear(),check.getMonth(),check.getDate());
+      const next=nextWorkingDayCore(check.getFullYear(),check.getMonth(),check.getDate());
+      const thisKey=dk(y,m,d);
+      if(prev===thisKey||next===thisKey) return true;
+    }
+  }
+  return false;
 }
+
+// Check if a given date is the working-day-adjacent to a flex holiday
+function isAdjFlex(y,m,d){
+  for(let offset=-4;offset<=4;offset++){
+    if(offset===0) continue;
+    const check=new Date(y,m,d+offset);
+    const ck=dk(check.getFullYear(),check.getMonth(),check.getDate());
+    if(isFlexHol(ck)){
+      const prev=prevWorkingDayFlex(check.getFullYear(),check.getMonth(),check.getDate());
+      const next=nextWorkingDayFlex(check.getFullYear(),check.getMonth(),check.getDate());
+      const thisKey=dk(y,m,d);
+      if(prev===thisKey||next===thisKey) return true;
+    }
+  }
+  return false;
+}
+
 function isAdjForUser(y,m,d){
-  if(!currentUser)return isAdjFlex(y,m,d)||isAdjCore(y,m,d);
+  if(!currentUser) return isAdjFlex(y,m,d)||isAdjCore(y,m,d);
   if(currentUser.pod==='flex') return isAdjFlex(y,m,d);
   if(CORE_PODS.includes(currentUser.pod)) return isAdjCore(y,m,d);
   return isAdjFlex(y,m,d)||isAdjCore(y,m,d);
