@@ -33,6 +33,7 @@ const SCORECARD_SS_ID      = '1z6mLBx2gfoqFpSyjgg4C_69oB3eOT3lBmRynKWIwybk';
 const SCORECARD_SHEET      = 'VA Team Scorecard';
 const SC_VA_ROW            = 4;
 const SC_BOOKING_SCORE_ROW = 6;
+const SC_START_COL         = 3;  // VA names (row 4) and scores start at column C
 
 const MAIN_SHEETS = ['ROOF, MAIN', 'HVAC, MAIN', 'GUTTER, Main', 'WINDOWS, MAIN'];
 const BOOKING_KPI = 0.45;
@@ -474,17 +475,21 @@ function writeBookingScoresToScorecard_(vaScores) {
     const sheet = ss.getSheetByName(SCORECARD_SHEET);
     if (!sheet) { Logger.log('Scorecard sheet not found'); return; }
     const lastCol = sheet.getLastColumn();
-    if (lastCol < 1) return;
-    const vaRow = sheet.getRange(SC_VA_ROW, 1, 1, lastCol).getValues()[0];
+    if (lastCol < SC_START_COL) return;
+
+    // Read VA names from row 4 starting at column C
+    const numCols = lastCol - SC_START_COL + 1;
+    const vaRow   = sheet.getRange(SC_VA_ROW, SC_START_COL, 1, numCols).getValues()[0];
+
     vaRow.forEach((cell, i) => {
       const vaName = String(cell).trim();
       if (!vaName) return;
       const score = vaScores[vaName];
       if (typeof score === 'number') {
-        sheet.getRange(SC_BOOKING_SCORE_ROW, i + 1).setValue(score);
+        sheet.getRange(SC_BOOKING_SCORE_ROW, SC_START_COL + i).setValue(score);
       }
     });
-    Logger.log('Booking scores written to scorecard row ' + SC_BOOKING_SCORE_ROW);
+    Logger.log('Booking scores written to scorecard row ' + SC_BOOKING_SCORE_ROW + ' from col C');
   } catch(e) {
     Logger.log('writeBookingScoresToScorecard_ error: ' + e.message);
   }
