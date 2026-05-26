@@ -54,21 +54,12 @@ const COL_FU1        = 10;  // K–O follow-up slots (5 total)
 // ============================================================
 
 function refreshLiveStats() {
-  var lock = LockService.getScriptLock();
-  if (!lock.tryLock(0)) {
-    Logger.log('Skipped — another instance is already running.');
-    return;
-  }
-  try {
-    const today    = new Date();
-    const mtdRange = getMTDRange_(today);
-    const leads    = loadLeads_();
-    writeBookingRateSheet_(leads, mtdRange, today);
-    writeFollowUpSheet_(leads, mtdRange, today);
-    Logger.log('Live stats updated — ' + today.toISOString());
-  } finally {
-    lock.releaseLock();
-  }
+  const today    = new Date();
+  const mtdRange = getMTDRange_(today);
+  const leads    = loadLeads_();
+  writeBookingRateSheet_(leads, mtdRange, today);
+  writeFollowUpSheet_(leads, mtdRange, today);
+  Logger.log('Live stats updated — ' + today.toISOString());
 }
 
 // ============================================================
