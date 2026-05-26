@@ -244,10 +244,8 @@ function writeBookingRateSheet_(leads, mtdRange, today) {
   sheet.setFrozenRows(4);
   sheet.autoResizeColumns(1, W);
   sheet.setColumnWidth(1, 80);
-  sheet.getRange(1, 1, 1, 1).setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
-  sheet.getRange(2, 1, 1, 1).setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
-  sheet.autoResizeRow(1);
-  sheet.autoResizeRow(2);
+  sheet.getRange(1, 1, 1, 1).setWrap(true);
+  sheet.getRange(2, 1, 1, 1).setWrap(true);
 
   // Write booking scores to VA Team Scorecard row 6
   writeBookingScoresToScorecard_(vaScores);
@@ -450,10 +448,8 @@ function writeFollowUpSheet_(leads, mtdRange, today) {
   sheet.setFrozenRows(4);
   sheet.autoResizeColumns(1, W);
   sheet.setColumnWidth(1, 80);
-  sheet.getRange(1, 1, 1, 1).setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
-  sheet.getRange(2, 1, 1, 1).setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
-  sheet.autoResizeRow(1);
-  sheet.autoResizeRow(2);
+  sheet.getRange(1, 1, 1, 1).setWrap(true);
+  sheet.getRange(2, 1, 1, 1).setWrap(true);
   Logger.log('Follow-Up Adherence: ' + sumRows.length + ' VAs, ' + totalMissed + ' missed slots');
 }
 
