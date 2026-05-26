@@ -472,12 +472,18 @@ function writeBookingScoresToScorecard_(vaScores) {
     const numCols = lastCol - SC_START_COL + 1;
     const vaRow   = sheet.getRange(SC_VA_ROW, SC_START_COL, 1, numCols).getValues()[0];
 
+    Logger.log('Scorecard VA names (row 4 from col C): ' + JSON.stringify(vaRow));
+    Logger.log('Source VA scores: ' + JSON.stringify(vaScores));
+
     vaRow.forEach((cell, i) => {
       const vaName = String(cell).trim();
       if (!vaName) return;
       const score = vaScores[vaName];
       if (typeof score === 'number') {
         sheet.getRange(SC_BOOKING_SCORE_ROW, SC_START_COL + i).setValue(score);
+        Logger.log('Wrote score ' + score + ' for "' + vaName + '" at col ' + (SC_START_COL + i));
+      } else {
+        Logger.log('No score match for scorecard name: "' + vaName + '"');
       }
     });
     Logger.log('Booking scores written to scorecard row ' + SC_BOOKING_SCORE_ROW + ' from col C');
