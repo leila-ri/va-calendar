@@ -268,6 +268,8 @@ function isSpecialStatusLead_(l) {
   if (st.includes('invalid'))          return true;
   if (st === 'satellite quote')        return true;
   if (st === 'client handles')         return true;
+  if (st.includes('reschedule'))       return true;
+  if (st.includes('call back') || st.includes('callback')) return true;
 
   const d = l.disp;
   if (d === 'osa')                     return true;
@@ -306,16 +308,16 @@ function writeFollowUpSheet_(leads, mtdRange, today) {
     const lastFilled= lastFilledIdx_(l);
 
     if (special) {
-      // Only penalise if follow-up was started and then stopped.
+      // Only penalise if follow-up was started.
       // Leads with 0 filled slots were categorised on the spot — skip.
       if (lastFilled < 0) return;
 
-      // For these leads, only count expected slots AFTER the last filled one.
-      // Any empty slot after that point = the VA stopped = a miss.
+      // Stopping after the last needed follow-up is correct behaviour.
+      // Only penalise for GAPS within the slots that were actually done.
       if (!vaMap[l.va]) vaMap[l.va] = { count:0, expected:0, filled:0 };
       vaMap[l.va].count++;
 
-      for (let slot = lastFilled + 2; slot <= 5; slot++) {   // slots are 1-indexed
+      for (let slot = 1; slot <= lastFilled + 1; slot++) {
         const dueDate = addWorkingDays_(l.dateIn, slot);
         if (midnight_(dueDate) > todayMid) break;            // not yet due
 
@@ -331,7 +333,7 @@ function writeFollowUpSheet_(leads, mtdRange, today) {
             slot:     'Day ' + slot,
             dueDate:  fmtShort_(dueDate),
             status:   l.status,
-            note:     'Stopped after Day ' + (lastFilled + 1)
+            note:     'Gap (last follow-up: Day ' + (lastFilled + 1) + ')'
           });
         }
       }
