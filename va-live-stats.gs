@@ -29,6 +29,10 @@
 
 // ── CONFIG ──────────────────────────────────────────────────
 const SOURCE_SS_ID         = '1Kd0smsW26IJR1H5kJ0MP0kH8jPOTazo2_TbLEkgmbRs';
+const SCORECARD_SS_ID      = '1z6mLBx2gfoqFpSyjgg4C_69oB3eOT3lBmRynKWIwybk';
+const SCORECARD_SHEET      = 'VA Team Scorecard';
+const SC_VA_ROW            = 4;
+const SC_BOOKING_SCORE_ROW = 6;
 
 const MAIN_SHEETS = ['ROOF, MAIN', 'HVAC, MAIN', 'GUTTER, Main', 'WINDOWS, MAIN'];
 const BOOKING_KPI = 0.45;
@@ -162,10 +166,12 @@ function writeBookingRateSheet_(leads, mtdRange, today) {
 
   const COLS = [
     'VA','Total Leads','Qualified Leads','Booked',
-    'Booking Rate','Score (0–10)','KPI (45%+)',
+    'Booking Rate','KPI (45%+)',
     'Cancelled / Invalid','Excluded Dispositions','Client Handles (excl.)'
   ];
-  const W = COLS.length;
+  const W = COLS.length; // 9 cols (A–I); rows 1–2 merged to A:J
+
+  const vaScores = {}; // va → score, used for scorecard write + row coloring
 
   const rows = Object.entries(vaMap)
     .sort((a,b) => {
@@ -177,20 +183,20 @@ function writeBookingRateSheet_(leads, mtdRange, today) {
       const rate  = m.qualified > 0 ? m.booked/m.qualified : null;
       const score = bookingScore_(rate);
       const kpi   = rate === null ? '—' : rate >= BOOKING_KPI ? '✓ Met' : '✗ Below';
+      vaScores[va] = score;
       return [
         va, m.total, m.qualified, m.booked,
         rate !== null ? pct_(m.booked, m.qualified) : 'N/A',
-        score, kpi,
+        kpi,
         m.cancelled, m.exclDisp, m.exclCH
       ];
     });
 
   // Grand totals
   const gt = Array(W).fill(''); gt[0] = 'TOTAL';
-  [1,2,3,7,8,9].forEach(i => { gt[i] = rows.reduce((s,r)=>s+(Number(r[i])||0),0); });
+  [1,2,3,6,7,8].forEach(i => { gt[i] = rows.reduce((s,r)=>s+(Number(r[i])||0),0); });
   gt[4] = gt[2] > 0 ? pct_(gt[3], gt[2]) : 'N/A';
-  gt[5] = bookingScore_(gt[2] > 0 ? gt[3]/gt[2] : null);
-  gt[6] = gt[2] > 0 ? (gt[3]/gt[2] >= BOOKING_KPI ? '✓ Met' : '✗ Below') : '—';
+  gt[5] = gt[2] > 0 ? (gt[3]/gt[2] >= BOOKING_KPI ? '✓ Met' : '✗ Below') : '—';
 
   const OUT = [
     ['MTD BOOKING RATE — ' + monthLabel + ' — ' + lastRun],
@@ -213,24 +219,24 @@ function writeBookingRateSheet_(leads, mtdRange, today) {
   styleRow_(sheet, 4, W, '#2F5496','#FFFFFF', true,  10);
   styleRow_(sheet, 5, W, '#F2F2F2','#000000', true,  10);
 
+  // Merge title rows A:J before per-row coloring
+  sheet.getRange(1, 1, 1, 10).merge();
+  sheet.getRange(2, 1, 1, 10).merge();
+
   const ds = 6;
   for (let i = 0; i < rows.length; i++) {
-    const score    = rows[i][5];
-    const kpi      = rows[i][6];
+    const score    = vaScores[rows[i][0]];  // score kept for color logic
+    const kpi      = rows[i][5];            // KPI now at index 5
     const rateCell = sheet.getRange(ds+i, 5);
-    const scoreCell= sheet.getRange(ds+i, 6);
-    const kpiCell  = sheet.getRange(ds+i, 7);
+    const kpiCell  = sheet.getRange(ds+i, 6);
 
     if (kpi === '✓ Met') {
       rateCell.setBackground('#C6EFCE').setFontColor('#276221');
-      scoreCell.setBackground('#C6EFCE').setFontColor('#276221').setFontWeight('bold');
       kpiCell.setBackground('#C6EFCE').setFontColor('#276221').setFontWeight('bold');
     } else if (kpi === '✗ Below') {
-      // Yellow for scores 6–9, red for ≤5
       const bg = (typeof score === 'number' && score >= 6) ? '#FFEB9C' : '#FFC7CE';
       const fg = (typeof score === 'number' && score >= 6) ? '#9C5700' : '#9C0006';
       rateCell.setBackground(bg).setFontColor(fg);
-      scoreCell.setBackground(bg).setFontColor(fg).setFontWeight('bold');
       kpiCell.setBackground(bg).setFontColor(fg).setFontWeight('bold');
     }
   }
@@ -238,9 +244,14 @@ function writeBookingRateSheet_(leads, mtdRange, today) {
   sheet.setFrozenRows(4);
   sheet.autoResizeColumns(1, W);
   sheet.setColumnWidth(1, 80);
-  sheet.getRange(1, 1, 2, W).setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+  sheet.getRange(1, 1, 1, 1).setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+  sheet.getRange(2, 1, 1, 1).setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
   sheet.autoResizeRow(1);
   sheet.autoResizeRow(2);
+
+  // Write booking scores to VA Team Scorecard row 6
+  writeBookingScoresToScorecard_(vaScores);
+
   Logger.log('MTD Booking Rate sheet: ' + rows.length + ' VAs');
 }
 
@@ -432,13 +443,44 @@ function writeFollowUpSheet_(leads, mtdRange, today) {
   styleRow_(sheet, missHeaderRow, W, '#E8F0FE','#1F3864', true,  10);
   styleRow_(sheet, detailHdrRow,  W, '#4A86E8','#FFFFFF', true,  10);
 
+  // Merge title rows A:J
+  sheet.getRange(1, 1, 1, 10).merge();
+  sheet.getRange(2, 1, 1, 10).merge();
+
   sheet.setFrozenRows(4);
   sheet.autoResizeColumns(1, W);
   sheet.setColumnWidth(1, 80);
-  sheet.getRange(1, 1, 2, W).setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+  sheet.getRange(1, 1, 1, 1).setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
+  sheet.getRange(2, 1, 1, 1).setWrapStrategy(SpreadsheetApp.WrapStrategy.WRAP);
   sheet.autoResizeRow(1);
   sheet.autoResizeRow(2);
   Logger.log('Follow-Up Adherence: ' + sumRows.length + ' VAs, ' + totalMissed + ' missed slots');
+}
+
+// ============================================================
+// SCORECARD: BOOKING SCORE → ROW 6
+// ============================================================
+
+function writeBookingScoresToScorecard_(vaScores) {
+  try {
+    const ss    = SpreadsheetApp.openById(SCORECARD_SS_ID);
+    const sheet = ss.getSheetByName(SCORECARD_SHEET);
+    if (!sheet) { Logger.log('Scorecard sheet not found'); return; }
+    const lastCol = sheet.getLastColumn();
+    if (lastCol < 1) return;
+    const vaRow = sheet.getRange(SC_VA_ROW, 1, 1, lastCol).getValues()[0];
+    vaRow.forEach((cell, i) => {
+      const vaName = String(cell).trim();
+      if (!vaName) return;
+      const score = vaScores[vaName];
+      if (typeof score === 'number') {
+        sheet.getRange(SC_BOOKING_SCORE_ROW, i + 1).setValue(score);
+      }
+    });
+    Logger.log('Booking scores written to scorecard row ' + SC_BOOKING_SCORE_ROW);
+  } catch(e) {
+    Logger.log('writeBookingScoresToScorecard_ error: ' + e.message);
+  }
 }
 
 // ============================================================
