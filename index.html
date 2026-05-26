@@ -437,9 +437,7 @@ function isAdjFlex(y,m,d){
 }
 
 function isAdjForUser(y,m,d){
-  if(!currentUser) return isAdjFlex(y,m,d)||isAdjCore(y,m,d);
-  if(currentUser.pod==='flex') return isAdjFlex(y,m,d);
-  if(CORE_PODS.includes(currentUser.pod)) return isAdjCore(y,m,d);
+  // Both core and flex holidays block everyone, so adjacent applies to all
   return isAdjFlex(y,m,d)||isAdjCore(y,m,d);
 }
 
