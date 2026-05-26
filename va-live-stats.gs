@@ -53,14 +53,21 @@ const COL_FU1        = 10;  // K–O follow-up slots (5 total)
 // ============================================================
 
 function refreshLiveStats() {
-  const today    = new Date();
-  const mtdRange = getMTDRange_(today);
-  const leads    = loadLeads_();
-
-  writeBookingRateSheet_(leads, mtdRange, today);
-  writeFollowUpSheet_(leads, mtdRange, today);
-
-  Logger.log('Live stats updated — ' + today.toISOString());
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(0)) {
+    Logger.log('Skipped — another instance is already running.');
+    return;
+  }
+  try {
+    const today    = new Date();
+    const mtdRange = getMTDRange_(today);
+    const leads    = loadLeads_();
+    writeBookingRateSheet_(leads, mtdRange, today);
+    writeFollowUpSheet_(leads, mtdRange, today);
+    Logger.log('Live stats updated — ' + today.toISOString());
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 // ============================================================
@@ -166,10 +173,10 @@ function writeBookingRateSheet_(leads, mtdRange, today) {
 
   const COLS = [
     'VA','Total Leads','Qualified Leads','Booked',
-    'Booking Rate','KPI (45%+)',
+    'Booking Rate','Score (0–10)','KPI (45%+)',
     'Cancelled / Invalid','Excluded Dispositions','Client Handles (excl.)'
   ];
-  const W = COLS.length; // 9 cols (A–I); rows 1–2 merged to A:J
+  const W = COLS.length; // 10 cols (A–J)
 
   const vaScores = {}; // va → score, used for scorecard write + row coloring
 
@@ -187,16 +194,17 @@ function writeBookingRateSheet_(leads, mtdRange, today) {
       return [
         va, m.total, m.qualified, m.booked,
         rate !== null ? pct_(m.booked, m.qualified) : 'N/A',
-        kpi,
+        score, kpi,
         m.cancelled, m.exclDisp, m.exclCH
       ];
     });
 
   // Grand totals
   const gt = Array(W).fill(''); gt[0] = 'TOTAL';
-  [1,2,3,6,7,8].forEach(i => { gt[i] = rows.reduce((s,r)=>s+(Number(r[i])||0),0); });
+  [1,2,3,7,8,9].forEach(i => { gt[i] = rows.reduce((s,r)=>s+(Number(r[i])||0),0); });
   gt[4] = gt[2] > 0 ? pct_(gt[3], gt[2]) : 'N/A';
-  gt[5] = gt[2] > 0 ? (gt[3]/gt[2] >= BOOKING_KPI ? '✓ Met' : '✗ Below') : '—';
+  gt[5] = bookingScore_(gt[2] > 0 ? gt[3]/gt[2] : null);
+  gt[6] = gt[2] > 0 ? (gt[3]/gt[2] >= BOOKING_KPI ? '✓ Met' : '✗ Below') : '—';
 
   const OUT = [
     ['MTD BOOKING RATE — ' + monthLabel + ' — ' + lastRun],
@@ -225,18 +233,21 @@ function writeBookingRateSheet_(leads, mtdRange, today) {
 
   const ds = 6;
   for (let i = 0; i < rows.length; i++) {
-    const score    = vaScores[rows[i][0]];  // score kept for color logic
-    const kpi      = rows[i][5];            // KPI now at index 5
-    const rateCell = sheet.getRange(ds+i, 5);
-    const kpiCell  = sheet.getRange(ds+i, 6);
+    const score     = rows[i][5];  // Score (0–10) at index 5
+    const kpi       = rows[i][6];  // KPI at index 6
+    const rateCell  = sheet.getRange(ds+i, 5);
+    const scoreCell = sheet.getRange(ds+i, 6);
+    const kpiCell   = sheet.getRange(ds+i, 7);
 
     if (kpi === '✓ Met') {
       rateCell.setBackground('#C6EFCE').setFontColor('#276221');
+      scoreCell.setBackground('#C6EFCE').setFontColor('#276221').setFontWeight('bold');
       kpiCell.setBackground('#C6EFCE').setFontColor('#276221').setFontWeight('bold');
     } else if (kpi === '✗ Below') {
       const bg = (typeof score === 'number' && score >= 6) ? '#FFEB9C' : '#FFC7CE';
       const fg = (typeof score === 'number' && score >= 6) ? '#9C5700' : '#9C0006';
       rateCell.setBackground(bg).setFontColor(fg);
+      scoreCell.setBackground(bg).setFontColor(fg).setFontWeight('bold');
       kpiCell.setBackground(bg).setFontColor(fg).setFontWeight('bold');
     }
   }
@@ -658,9 +669,9 @@ function setupLiveTrigger() {
   ScriptApp.getProjectTriggers().forEach(t => {
     if (t.getHandlerFunction() === 'refreshLiveStats') ScriptApp.deleteTrigger(t);
   });
-  ScriptApp.newTrigger('refreshLiveStats').timeBased().everyMinutes(1).create();
+  ScriptApp.newTrigger('refreshLiveStats').timeBased().everyMinutes(5).create();
   SpreadsheetApp.getUi().alert(
-    '✅ Live trigger set!\n\nSheets update every minute.\n\nTo stop: menu → Stop Auto-Refresh.'
+    '✅ Live trigger set!\n\nSheets update every 5 minutes.\n\nTo stop: menu → Stop Auto-Refresh.'
   );
 }
 
