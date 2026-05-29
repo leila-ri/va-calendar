@@ -533,7 +533,7 @@ function writeFollowUpSheet_(leads, mtdRange, today) {
   const DCOLS = ['VA','Sub-Account','Lead Name','Lead Date',
                  'Missed Date','Lead Status','Note'];
   const DW    = DCOLS.length;
-  const W     = Math.max(SW, DW);
+  const W     = Math.max(SW, DW, 10);  // minimum 10 cols to match MTD Booking Rate
 
   const totalMissed = sumRows.reduce((s,r) => s+(Number(r[6])||0), 0);
 
