@@ -609,7 +609,9 @@ function writeFollowUpSheet_(leads, mtdRange, today) {
   sheet.getRange(2, 1, 1, 10).merge();
   sheet.setFrozenRows(4);
   sheet.autoResizeColumns(1, W);
-  sheet.setColumnWidth(1, 80);
+  sheet.setColumnWidth(1, 80);   // VA
+  sheet.setColumnWidth(2, 130);  // Sub-Account / Active Leads
+  sheet.setColumnWidth(3, 150);  // Lead Name / Expected Days
   sheet.getRange(1, 1, 1, 1).setWrap(true);
   sheet.getRange(2, 1, 1, 1).setWrap(true);
   Logger.log('Follow-Up Adherence: ' + sumRows.length + ' VAs, ' + totalMissed + ' missed days');
