@@ -37,15 +37,21 @@ const MAIN_SHEETS = ['ROOF, MAIN', 'HVAC, MAIN', 'GUTTER, Main', 'WINDOWS, MAIN'
 const BOOKING_KPI = 0.45;
 const EXCLUDE_CLIENT_HANDLES_ACCTS = ['Outstanding Roofing', 'Good Guy Roofing'];
 
+// Off-day calendar + Sunday-coverage spreadsheet
+const COVERAGE_SS_ID = '1RmLtprnhJxhY7asBbUSPuiahD4H8vbz_dIb42Y__wr0';
+const CALENDAR_API   = 'https://script.google.com/macros/s/AKfycbwQdE3oeV_UWrUr4i5yYo9T_kzTRHKGjx2erFl7OI27d5La1BmUEoRImUE-INyWvVTuJg/exec';
+
 // Source column indices (0-based)
-const COL_VA         = 0;   // A
+const COL_VA         = 0;   // A — VA who handled the lead (flex on Sat, core on weekdays)
 const COL_DATE_IN    = 1;   // B — date lead came in
 const COL_SUBACCOUNT = 2;   // C
 const COL_LEAD_NAME  = 3;   // D
 const COL_STATUS     = 6;   // G
+const COL_CORE_VA    = 7;   // H — core VA for the account
 const COL_DISP       = 8;   // I — disposition
 const COL_DATE_CONF  = 9;   // J — date confirmed
-const COL_FU1        = 10;  // K–O follow-up slots (5 total)
+const COL_FLEX_VA    = 10;  // K — flex VA (Sat/Sun coverage + follow-up)
+const COL_FU1        = 11;  // L–P follow-up slots (5 total)
 
 // ============================================================
 // ENTRY POINT
@@ -55,8 +61,10 @@ function refreshLiveStats() {
   const today    = new Date();
   const mtdRange = getMTDRange_(today);
   const leads    = loadLeads_();
+  const offDays  = loadOffDays_();
+  const sunCov   = loadSundayCoverage_();
   writeBookingRateSheet_(leads, mtdRange, today);
-  writeFollowUpSheet_(leads, mtdRange, today);
+  writeFollowUpSheet_(leads, mtdRange, today, offDays, sunCov);
   Logger.log('Live stats updated — ' + today.toISOString());
 }
 
@@ -444,7 +452,10 @@ function buildCoverageMap_(entries) {
 
 // ── Main sheet writer ────────────────────────────────────────
 
-function writeFollowUpSheet_(leads, mtdRange, today) {
+function writeFollowUpSheet_(leads, mtdRange, today, offDays, sunCov) {
+  offDays = offDays || new Map();
+  sunCov  = sunCov  || new Map();
+
   const destSS    = SpreadsheetApp.getActiveSpreadsheet();
   const sheet     = resetSheet_(destSS, 'Follow-Up Adherence');
   const monthLabel= fmtMonth_(today);
@@ -459,8 +470,9 @@ function writeFollowUpSheet_(leads, mtdRange, today) {
     if (!inRange_(l.dateIn, mtdRange)) return;
     if (!l.dateIn) return;
 
-    const special = isSpecialStatusLead_(l);
-    const entries = parseFollowUpEntries_(l.followUps, l.dateIn);
+    const hasSunCov = sunCov.get(l.subaccount.toLowerCase()) || false;
+    const special   = isSpecialStatusLead_(l);
+    const entries   = parseFollowUpEntries_(l.followUps, l.dateIn);
 
     // Special lead with zero calls = resolved on the spot, nothing to check
     if (special && entries.length === 0) return;
@@ -472,33 +484,52 @@ function writeFollowUpSheet_(leads, mtdRange, today) {
       const winEnd = last.cbWindow ? last.cbWindow.end : null;
       cutoff = (winEnd && winEnd > last.callDate) ? winEnd : last.callDate;
     } else {
-      // Active leads: max 5 days expected (1 first contact + 4 follow-ups)
-      const maxCutoff = midnight_(addWorkingDays_(l.dateIn, 4));
+      // Active leads: max 5 expected days (1 first contact + 4 follow-ups)
+      const maxCutoff = midnight_(addExpectedDays_(l.dateIn, 4, hasSunCov));
       cutoff = maxCutoff < todayMid ? maxCutoff : todayMid;
     }
 
     const coverage = buildCoverageMap_(entries);
 
-    if (!vaMap[l.va]) vaMap[l.va] = { count:0, expected:0, filled:0 };
-    vaMap[l.va].count++;
+    // Lead count → primary VA (flex for Sat leads, core for weekday leads)
+    const leadDow   = l.dateIn.getDay();
+    const primaryVA = (leadDow === 6) ? (l.flexVA || l.va) : (l.coreVA || l.va);
+    if (!vaMap[primaryVA]) vaMap[primaryVA] = { count:0, expected:0, filled:0 };
+    vaMap[primaryVA].count++;
 
-    // Flag if first contact is 2+ working days after lead date
-    const firstCall    = entries.length > 0 ? entries[0].callDate : null;
-    const maxOkFirst   = midnight_(addWorkingDays_(l.dateIn, 1));
-    const lateFirst    = !!firstCall && firstCall > maxOkFirst;
+    // Flag if first contact is 2+ expected days after lead date
+    const firstCall  = entries.length > 0 ? entries[0].callDate : null;
+    const maxOkFirst = midnight_(addExpectedDays_(l.dateIn, 1, hasSunCov));
+    const lateFirst  = !!firstCall && firstCall > maxOkFirst;
 
-    // Walk every working day from lead date to cutoff
+    // Walk every expected day from lead date to cutoff
     const d = new Date(midnight_(l.dateIn));
     while (d <= cutoff) {
-      if (!isNonWorkingDay_(d)) {
-        vaMap[l.va].expected++;
+      const dow = d.getDay();
+
+      if (!isExpectedNonWorkingDay_(d, hasSunCov)) {
+        // Responsibility: Sat/Sun or any day of a Sat lead → flex VA; weekday lead → core VA
+        let respVA = (dow === 6 || dow === 0 || leadDow === 6)
+          ? (l.flexVA || l.va)
+          : (l.coreVA || l.va);
+
+        // If this flex VA is off that day, shift to core VA
+        const dkPad  = dateKeyPadded_(d);
+        const offSet = offDays.get(dkPad);
+        if (offSet && respVA && offSet.has(respVA.toLowerCase().trim())) {
+          respVA = l.coreVA || l.va;
+        }
+
+        if (!vaMap[respVA]) vaMap[respVA] = { count:0, expected:0, filled:0 };
+        vaMap[respVA].expected++;
+
         const key = dateKey_(d);
         if (coverage.has(key)) {
-          vaMap[l.va].filled++;
+          vaMap[respVA].filled++;
         } else {
           const isLateGap = lateFirst && !!firstCall && d < firstCall;
           missedRows.push({
-            va:       l.va,
+            va:       respVA,
             sub:      l.subaccount,
             name:     l.leadName,
             leadDate: fmtShort_(l.dateIn),
@@ -655,6 +686,73 @@ function writeBookingScoresToScorecard_(vaScores) {
 }
 
 // ============================================================
+// OFF-DAY CALENDAR  (flex VA off days from GAS web app)
+// ============================================================
+
+function loadOffDays_() {
+  // Returns Map<"YYYY-MM-DD", Set<vaNameLowerCase>>
+  const map = new Map();
+  try {
+    const resp = UrlFetchApp.fetch(
+      CALENDAR_API + '?action=getSharedEntries',
+      {muteHttpExceptions: true, followRedirects: true}
+    );
+    if (resp.getResponseCode() !== 200) {
+      Logger.log('loadOffDays_ HTTP ' + resp.getResponseCode());
+      return map;
+    }
+    const data    = JSON.parse(resp.getContentText());
+    const entries = data.entries || {};
+    for (const [dateKey, items] of Object.entries(entries)) {
+      for (const e of items) {
+        if (e.type === 'flex-off' && e.name) {
+          if (!map.has(dateKey)) map.set(dateKey, new Set());
+          map.get(dateKey).add(e.name.toLowerCase().trim());
+        }
+      }
+    }
+    Logger.log('loadOffDays_: ' + map.size + ' dates with off entries');
+  } catch(e) {
+    Logger.log('loadOffDays_ error: ' + e.message);
+  }
+  return map;
+}
+
+// ============================================================
+// SUNDAY COVERAGE  (per-account, from coverage spreadsheet)
+// ============================================================
+
+function loadSundayCoverage_() {
+  // Returns Map<subaccountLowerCase, boolean>
+  // true = "/" (has Sunday coverage), false = "X" (no Sunday coverage)
+  const map = new Map();
+  try {
+    const ss = SpreadsheetApp.openById(COVERAGE_SS_ID);
+    ss.getSheets().forEach(sheet => {
+      const data = sheet.getDataRange().getValues();
+      let curAcct = null;
+      data.forEach(row => {
+        const c0 = String(row[0] || '').trim();
+        if (!c0) return;
+        const isSunRow = /^sun/i.test(c0);
+        if (!isSunRow && c0.length > 1) {
+          curAcct = c0;
+        }
+        if (isSunRow && curAcct) {
+          const hasCov = row.some(cell => String(cell).trim() === '/');
+          map.set(curAcct.toLowerCase(), hasCov);
+          Logger.log('Sunday coverage: "' + curAcct + '" = ' + (hasCov ? '/' : 'X'));
+        }
+      });
+    });
+    Logger.log('loadSundayCoverage_: ' + map.size + ' accounts');
+  } catch(e) {
+    Logger.log('loadSundayCoverage_ error: ' + e.message);
+  }
+  return map;
+}
+
+// ============================================================
 // WORKING-DAY HELPERS
 // ============================================================
 
@@ -668,6 +766,31 @@ function addWorkingDays_(startDate, n) {
     if (!isNonWorkingDay_(d)) added++;
   }
   return d;
+}
+
+// Sunday-coverage-aware non-working day check (used in per-lead day walks)
+function isExpectedNonWorkingDay_(date, hasSunCov) {
+  const dow = date.getDay();
+  if (dow === 0) return !hasSunCov;  // Sunday: skip unless account has coverage
+  return isUSHoliday_(date);
+}
+
+// Sunday-coverage-aware "add N expected days" (for 5-day cap + late-first-contact)
+function addExpectedDays_(startDate, n, hasSunCov) {
+  const d = new Date(startDate.getTime());
+  let added = 0;
+  while (added < n) {
+    d.setDate(d.getDate() + 1);
+    if (!isExpectedNonWorkingDay_(d, hasSunCov)) added++;
+  }
+  return d;
+}
+
+// Zero-padded date key for calendar API lookups: "YYYY-MM-DD"
+function dateKeyPadded_(d) {
+  return d.getFullYear() + '-'
+    + String(d.getMonth() + 1).padStart(2, '0') + '-'
+    + String(d.getDate()).padStart(2, '0');
 }
 
 function isNonWorkingDay_(date) {
@@ -763,12 +886,14 @@ function loadLeads_() {
     const last = sheet.getLastRow();
     if (last < 2) return;
 
-    sheet.getRange(2, 1, last-1, 15).getValues().forEach(row => {
+    sheet.getRange(2, 1, last-1, 16).getValues().forEach(row => {
       const va = String(row[COL_VA] || '').trim();
       if (!va || va.toLowerCase() === 'va') return;
 
       leads.push({
         va,
+        coreVA:     String(row[COL_CORE_VA]   || '').trim(),
+        flexVA:     String(row[COL_FLEX_VA]   || '').trim(),
         bucket:     getStatusBucket_(String(row[COL_STATUS] || '')),
         status:     String(row[COL_STATUS]    || '').trim(),
         disp:       String(row[COL_DISP]      || '').trim().toLowerCase(),
