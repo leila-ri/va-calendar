@@ -470,7 +470,8 @@ function writeFollowUpSheet_(leads, mtdRange, today, offDays, sunCov) {
     if (!inRange_(l.dateIn, mtdRange)) return;
     if (!l.dateIn) return;
 
-    const hasSunCov = sunCov.get(l.subaccount.toLowerCase()) || false;
+    // Default TRUE — if account not listed, assume Sunday coverage applies
+    const hasSunCov = sunCov.get(l.subaccount.toLowerCase()) !== false;
     const special   = isSpecialStatusLead_(l);
     const entries   = parseFollowUpEntries_(l.followUps, l.dateIn);
 
@@ -724,7 +725,9 @@ function loadOffDays_() {
 
 function loadSundayCoverage_() {
   // Returns Map<subaccountLowerCase, boolean>
-  // true = "/" (has Sunday coverage), false = "X" (no Sunday coverage)
+  // true  = has Sunday coverage ("With Sunday Coverage", "/", or ✅)
+  // false = no Sunday coverage  ("No Sunday coverage",   "X", or ❌)
+  // Accounts NOT in the map → default is TRUE (see call site)
   const map = new Map();
   try {
     const ss = SpreadsheetApp.openById(COVERAGE_SS_ID);
@@ -732,20 +735,29 @@ function loadSundayCoverage_() {
       const data = sheet.getDataRange().getValues();
       let curAcct = null;
       data.forEach(row => {
-        const c0 = String(row[0] || '').trim();
+        const cells   = row.map(c => String(c || '').trim());
+        const rowText = cells.join(' ');
+        const c0      = cells[0];
         if (!c0) return;
-        const isSunRow = /^sun/i.test(c0);
-        if (!isSunRow && c0.length > 1) {
-          curAcct = c0;
+
+        const isSunRow = /sunday/i.test(rowText);
+        if (!isSunRow) {
+          if (c0.length > 1) curAcct = c0;
+          return;
         }
-        if (isSunRow && curAcct) {
-          const hasCov = row.some(cell => String(cell).trim() === '/');
-          map.set(curAcct.toLowerCase(), hasCov);
-          Logger.log('Sunday coverage: "' + curAcct + '" = ' + (hasCov ? '/' : 'X'));
-        }
+        if (!curAcct) return;
+
+        // "No Sunday coverage" or cell === "X" → no coverage
+        const noSunday = /\bno\s+sunday\b/i.test(rowText)
+          || cells.some(c => c === 'X')
+          || /❌/.test(rowText);
+        const hasCov = !noSunday;
+
+        map.set(curAcct.toLowerCase(), hasCov);
+        Logger.log('Sunday coverage: "' + curAcct + '" = ' + (hasCov ? 'yes ✅' : 'no ❌'));
       });
     });
-    Logger.log('loadSundayCoverage_: ' + map.size + ' accounts');
+    Logger.log('loadSundayCoverage_: ' + map.size + ' accounts loaded');
   } catch(e) {
     Logger.log('loadSundayCoverage_ error: ' + e.message);
   }
