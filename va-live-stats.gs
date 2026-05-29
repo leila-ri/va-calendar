@@ -725,9 +725,9 @@ function loadOffDays_() {
 
 function loadSundayCoverage_() {
   // Returns Map<subaccountLowerCase, boolean>
-  // true  = has Sunday coverage ("With Sunday Coverage", "/", or ✅)
-  // false = no Sunday coverage  ("No Sunday coverage",   "X", or ❌)
-  // Accounts NOT in the map → default is TRUE (see call site)
+  // true  = has Sunday coverage (row contains ✅)
+  // false = no Sunday coverage  (row contains ❌, or row has no emoji)
+  // Accounts NOT in the map → default is TRUE (see call site: !==false)
   const map = new Map();
   try {
     const ss = SpreadsheetApp.openById(COVERAGE_SS_ID);
@@ -747,11 +747,8 @@ function loadSundayCoverage_() {
         }
         if (!curAcct) return;
 
-        // "No Sunday coverage" or cell === "X" → no coverage
-        const noSunday = /\bno\s+sunday\b/i.test(rowText)
-          || cells.some(c => c === 'X')
-          || /❌/.test(rowText);
-        const hasCov = !noSunday;
+        // Only ✅ emoji means yes; ❌ or no emoji means no
+        const hasCov = /✅/.test(rowText) && !/❌/.test(rowText);
 
         map.set(curAcct.toLowerCase(), hasCov);
         Logger.log('Sunday coverage: "' + curAcct + '" = ' + (hasCov ? 'yes ✅' : 'no ❌'));
