@@ -237,7 +237,6 @@ function isSpecialStatusLead_(l) {
   if (st === 'client handles')         return true;
   if (st.includes('reschedule'))       return true;
   if (st.includes('call back') || st.includes('callback')) return true;
-  if (st.includes('not responding'))   return true;  // VA tried; lead not picking up — stop at last call
 
   const d = l.disp;
   if (d === 'osa')                     return true;
@@ -473,7 +472,9 @@ function writeFollowUpSheet_(leads, mtdRange, today) {
       const winEnd = last.cbWindow ? last.cbWindow.end : null;
       cutoff = (winEnd && winEnd > last.callDate) ? winEnd : last.callDate;
     } else {
-      cutoff = todayMid;
+      // Active leads: max 5 days expected (1 first contact + 4 follow-ups)
+      const maxCutoff = midnight_(addWorkingDays_(l.dateIn, 4));
+      cutoff = maxCutoff < todayMid ? maxCutoff : todayMid;
     }
 
     const coverage = buildCoverageMap_(entries);
