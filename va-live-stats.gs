@@ -492,9 +492,13 @@ function writeFollowUpSheet_(leads, mtdRange, today, offDays, sunCov) {
 
     const coverage = buildCoverageMap_(entries);
 
+    // Resolve and validate core/flex VA names — filter out note content
+    const leadDow = l.dateIn.getDay();
+    const coreVA  = isValidVAName_(l.coreVA) ? l.coreVA : null;
+    const flexVA  = isValidVAName_(l.flexVA) ? l.flexVA : null;
+
     // Lead count → primary VA (flex for Sat leads, core for weekday leads)
-    const leadDow   = l.dateIn.getDay();
-    const primaryVA = (leadDow === 6) ? (l.flexVA || l.va) : (l.coreVA || l.va);
+    const primaryVA = (leadDow === 6) ? (flexVA || l.va) : (coreVA || l.va);
     if (!vaMap[primaryVA]) vaMap[primaryVA] = { count:0, expected:0, filled:0 };
     vaMap[primaryVA].count++;
 
@@ -511,14 +515,14 @@ function writeFollowUpSheet_(leads, mtdRange, today, offDays, sunCov) {
       if (!isExpectedNonWorkingDay_(d, hasSunCov)) {
         // Responsibility: Sat/Sun or any day of a Sat lead → flex VA; weekday lead → core VA
         let respVA = (dow === 6 || dow === 0 || leadDow === 6)
-          ? (l.flexVA || l.va)
-          : (l.coreVA || l.va);
+          ? (flexVA || l.va)
+          : (coreVA || l.va);
 
         // If this flex VA is off that day, shift to core VA
         const dkPad  = dateKeyPadded_(d);
         const offSet = offDays.get(dkPad);
         if (offSet && respVA && offSet.has(respVA.toLowerCase().trim())) {
-          respVA = l.coreVA || l.va;
+          respVA = coreVA || l.va;
         }
 
         if (!vaMap[respVA]) vaMap[respVA] = { count:0, expected:0, filled:0 };
@@ -800,6 +804,15 @@ function dateKeyPadded_(d) {
   return d.getFullYear() + '-'
     + String(d.getMonth() + 1).padStart(2, '0') + '-'
     + String(d.getDate()).padStart(2, '0');
+}
+
+// Guard: rejects follow-up note text masquerading as a VA name
+function isValidVAName_(s) {
+  if (!s || s.length < 2) return false;
+  if (/^\d{1,2}[\/\-]/.test(s)) return false;         // "5/26", "05/12" etc.
+  if (/^(mon|tue|wed|thu|fri|sat|sun)\b/i.test(s)) return false;
+  if (/^within\b/i.test(s)) return false;
+  return true;
 }
 
 function isNonWorkingDay_(date) {
