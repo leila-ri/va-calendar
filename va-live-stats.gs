@@ -237,6 +237,7 @@ function isSpecialStatusLead_(l) {
   if (st === 'client handles')         return true;
   if (st.includes('reschedule'))       return true;
   if (st.includes('call back') || st.includes('callback')) return true;
+  if (st.includes('not responding'))   return true;  // VA tried; lead not picking up — stop at last call
 
   const d = l.disp;
   if (d === 'osa')                     return true;
