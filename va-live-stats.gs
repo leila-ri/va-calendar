@@ -3,28 +3,26 @@
 // ============================================================
 // INSTALL (separate GAS project — paste into the VA Team Scorecard):
 //  1. Extensions > Apps Script → paste this file, Save
-//  2. Run setupLiveTrigger() ONCE → auto-refreshes every minute
+//  2. Run setupLiveTrigger() ONCE → auto-refreshes every 5 minutes
 //  3. Run refreshLiveStats() now to populate immediately
 //
 // CREATES / UPDATES (in this spreadsheet):
 //  "MTD Booking Rate"     — per-VA booking stats + score for the current month
-//  "Follow-Up Adherence"  — per-VA cadence compliance, date-based
+//  "Follow-Up Adherence"  — per-VA daily cadence compliance
 //
-// FOLLOW-UP DATE LOGIC:
-//  Working days = Monday–Saturday.  Sundays + US federal holidays skipped.
-//  Slot K due = lead date + 1 working day
-//  Slot L due = lead date + 2 working days  … through Slot O at +5.
-//  A slot is only expected once its due date has passed (≤ today).
+// FOLLOW-UP LOGIC (day-based):
+//  Every working day (Mon–Sat, no US holidays) from lead date must be
+//  "covered" by: (a) a call made that day, OR (b) a callback window
+//  parsed from the note text (tomorrow / next week / June 15 / etc.).
+//  Un-covered working days = missed days.
 //
-// FOLLOW-UP FOR RESOLVED / SPECIAL-STATUS LEADS:
-//  Leads with these statuses were already resolved but may have had
-//  follow-up work done before the VA stopped:
-//    Spanish lead, Cancelled/Invalid, OSA, Unqualified, # Issue,
-//    Dup Lead, Fake Lead, Satellite Quote, Client Handles
-//  Rule: if the VA DID start following up (≥ 1 filled slot) and then
-//  STOPPED (empty expected slots after the last filled slot), those
-//  gaps count against adherence.  Leads with zero filled slots are
-//  skipped — the VA categorised them on the spot with no follow-up due.
+//  Special-status leads (Cancelled, Client Handles, OSA, etc.):
+//    Cutoff = last call date — stopping is correct, gaps before that are not.
+//    Zero-entry leads = resolved on the spot, skipped entirely.
+//
+//  Active/Other leads: cutoff = today.
+//
+//  🚩 Late First Contact = first follow-up note is 2+ working days after lead date.
 // ============================================================
 
 // ── CONFIG ──────────────────────────────────────────────────
@@ -65,18 +63,6 @@ function refreshLiveStats() {
 // ============================================================
 // BOOKING SCORE  (0 – 10)
 // ============================================================
-//  45%+  → 10   (at/above KPI)
-//  40–44 →  9
-//  35–39 →  8
-//  30–34 →  7
-//  25–29 →  6
-//  20–24 →  5
-//  15–19 →  4
-//  10–14 →  3
-//   5–9  →  2
-//   1–4  →  1
-//   0%   →  0
-//  no data → '—'
 
 function bookingScore_(rate) {
   if (rate === null || rate === undefined) return '—';
@@ -97,18 +83,6 @@ function bookingScore_(rate) {
 // ============================================================
 // FOLLOW-UP SCORE  (0 – 10)
 // ============================================================
-//  90%+  → 10
-//  85–89 →  9
-//  80–84 →  8
-//  75–79 →  7
-//  70–74 →  6
-//  65–69 →  5
-//  60–64 →  4
-//  55–59 →  3
-//  50–54 →  2
-//  40–49 →  1
-//  < 40% →  0
-//  no data → '—'
 
 function followUpScore_(adherence) {
   if (adherence === null || adherence === undefined) return '—';
@@ -138,7 +112,6 @@ function writeBookingRateSheet_(leads, mtdRange, today) {
 
   const EXCL_DISP = new Set(['osa','unqualified','dup lead','# issue','#issue']);
 
-  // ── Aggregate per VA ────────────────────────────────────
   const vaMap = {};
   leads
     .filter(l => inRange_(l.dateIn, mtdRange) || inRange_(l.dateConf, mtdRange))
@@ -168,9 +141,9 @@ function writeBookingRateSheet_(leads, mtdRange, today) {
     'Booking Rate','Score (0–10)','KPI (45%+)',
     'Cancelled / Invalid','Excluded Dispositions','Client Handles (excl.)'
   ];
-  const W = COLS.length; // 10 cols (A–J)
+  const W = COLS.length;
 
-  const vaScores = {}; // va → score, used for scorecard write + row coloring
+  const vaScores = {};
 
   const rows = Object.entries(vaMap)
     .sort((a,b) => {
@@ -191,7 +164,6 @@ function writeBookingRateSheet_(leads, mtdRange, today) {
       ];
     });
 
-  // Grand totals
   const gt = Array(W).fill(''); gt[0] = 'TOTAL';
   [1,2,3,7,8,9].forEach(i => { gt[i] = rows.reduce((s,r)=>s+(Number(r[i])||0),0); });
   gt[4] = gt[2] > 0 ? pct_(gt[3], gt[2]) : 'N/A';
@@ -202,7 +174,7 @@ function writeBookingRateSheet_(leads, mtdRange, today) {
     ['MTD BOOKING RATE — ' + monthLabel + ' — ' + lastRun],
     [
       'Booking Rate = Booked ÷ Qualified Leads.  ' +
-      'Excluded from denominator: Cancelled/Invalid · OSA · Unqualified · Dup Lead · # Issue · ' +
+      'Excluded: Cancelled/Invalid · OSA · Unqualified · Dup Lead · # Issue · ' +
       'Client Handles (Outstanding Roofing + Good Guy Roofing only).  ' +
       'Score: 45%+=10 · 40%=9 · 35%=8 · 30%=7 · 25%=6 · 20%=5 · 15%=4 · 10%=3 · 5%=2 · 1%=1 · 0%=0'
     ],
@@ -213,20 +185,18 @@ function writeBookingRateSheet_(leads, mtdRange, today) {
   ];
   writeGrid_(sheet, OUT, W);
 
-  // Formatting
   styleRow_(sheet, 1, W, '#1F3864','#FFFFFF', true,  11);
   styleRow_(sheet, 2, W, '#1F3864','#CCDDFF', false,  9);
   styleRow_(sheet, 4, W, '#2F5496','#FFFFFF', true,  10);
   styleRow_(sheet, 5, W, '#F2F2F2','#000000', true,  10);
 
-  // Merge title rows A:J before per-row coloring
   sheet.getRange(1, 1, 1, 10).merge();
   sheet.getRange(2, 1, 1, 10).merge();
 
   const ds = 6;
   for (let i = 0; i < rows.length; i++) {
-    const score     = rows[i][5];  // Score (0–10) at index 5
-    const kpi       = rows[i][6];  // KPI at index 6
+    const score     = rows[i][5];
+    const kpi       = rows[i][6];
     const rateCell  = sheet.getRange(ds+i, 5);
     const scoreCell = sheet.getRange(ds+i, 6);
     const kpiCell   = sheet.getRange(ds+i, 7);
@@ -250,17 +220,14 @@ function writeBookingRateSheet_(leads, mtdRange, today) {
   sheet.getRange(1, 1, 1, 1).setWrap(true);
   sheet.getRange(2, 1, 1, 1).setWrap(true);
 
-  // Write booking scores to VA Team Scorecard row 6
   writeBookingScoresToScorecard_(vaScores);
-
   Logger.log('MTD Booking Rate sheet: ' + rows.length + ' VAs');
 }
 
 // ============================================================
-// SHEET 2: FOLLOW-UP ADHERENCE  (date-based, stop detection)
+// SHEET 2: FOLLOW-UP ADHERENCE  (day-based, callback-window aware)
 // ============================================================
 
-// Returns true if this lead has one of the "resolved/special" statuses.
 function isSpecialStatusLead_(l) {
   const st = l.status.toLowerCase();
   if (st.includes('spanish'))          return true;
@@ -282,12 +249,200 @@ function isSpecialStatusLead_(l) {
   return false;
 }
 
-// 0-based index of the last filled follow-up slot, or -1 if none filled.
-function lastFilledIdx_(lead) {
-  let last = -1;
-  for (let k = 0; k < 5; k++) if (lead.followUps[k]) last = k;
-  return last;
+// ── Follow-up note parsers ───────────────────────────────────
+
+const MONTH_MAP_ = {
+  jan:0, january:0, feb:1, february:1, mar:2, march:2,
+  apr:3, april:3, may:4, jun:5, june:5, jul:6, july:6,
+  aug:7, august:7, sep:8, sept:8, september:8,
+  oct:9, october:9, nov:10, november:10, dec:11, december:11
+};
+
+function dateKey_(d) {
+  return d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate();
 }
+
+// Pull the leading MM/DD or M/D date from a note string
+function parseLeadingDate_(text, leadDate) {
+  const m = text.trim().match(/^(\d{1,2})[\/\-]{1,2}(\d{1,2})/);
+  if (!m) return null;
+  const mo = parseInt(m[1]) - 1, day = parseInt(m[2]);
+  if (mo < 0 || mo > 11 || day < 1 || day > 31) return null;
+  let yr = leadDate.getFullYear();
+  let dt = new Date(yr, mo, day);
+  // If parsed date is >30 days before lead date it likely rolled to next year
+  if (midnight_(dt) < new Date(midnight_(leadDate).getTime() - 30*24*60*60*1000)) {
+    dt = new Date(yr + 1, mo, day);
+  }
+  return dt;
+}
+
+// Find a specific calendar date referenced after a callback keyword
+function parseSpecificCallbackDate_(text, callDate) {
+  const t = text.toLowerCase();
+
+  // "10th of June"
+  let m = t.match(/(\d{1,2})(?:st|nd|rd|th)\s+of\s+([a-z]+)/);
+  if (m) {
+    const mn = MONTH_MAP_[m[2]];
+    if (mn !== undefined) return bestFutureDate_(callDate, mn, parseInt(m[1]));
+  }
+
+  // "June 15" / "May 5"
+  for (const [name, mn] of Object.entries(MONTH_MAP_)) {
+    const re = new RegExp('\\b' + name + '\\s+(\\d{1,2})', 'i');
+    m = t.match(re);
+    if (m) return bestFutureDate_(callDate, mn, parseInt(m[1]));
+  }
+
+  // "the 30th" / "on the 30th"
+  m = t.match(/\bthe\s+(\d{1,2})(?:st|nd|rd|th)/);
+  if (m) {
+    const day = parseInt(m[1]);
+    let d = new Date(callDate.getFullYear(), callDate.getMonth(), day);
+    if (midnight_(d) <= midnight_(callDate)) {
+      d = new Date(callDate.getFullYear(), callDate.getMonth() + 1, day);
+    }
+    return d;
+  }
+
+  // Inline MM/DD not at the very start (that's the call date)
+  for (const dm of text.matchAll(/(?<!\d)(\d{1,2})\/(\d{1,2})(?!\d)/g)) {
+    if (dm.index < 5) continue;
+    const mo = parseInt(dm[1]) - 1, day = parseInt(dm[2]);
+    if (mo >= 0 && mo <= 11 && day >= 1 && day <= 31) {
+      return bestFutureDate_(callDate, mo, day);
+    }
+  }
+
+  return null;
+}
+
+function bestFutureDate_(afterDate, month0, day) {
+  let yr = afterDate.getFullYear();
+  let d = new Date(yr, month0, day);
+  if (midnight_(d) <= midnight_(afterDate)) d = new Date(yr + 1, month0, day);
+  return d;
+}
+
+// Returns {start, end} (both midnight Dates) or null if no callback detected
+function parseCallbackWindow_(text, callDate) {
+  if (!/callback|call\s*back|\bcb\b|will\s+call|requesting?\s+(?:a\s+)?call(?:back)?|lead\s+will\s+call|call(?:ing)?\s+(?:back|later|tomorrow)/i.test(text)) {
+    return null;
+  }
+
+  const t  = text.toLowerCase();
+  const cd = midnight_(callDate);
+
+  // Same-day / "today" / "later today" / "at [time]"
+  if (/\btoday\b/.test(t) || /later\s+(?:this\s+(?:morning|afternoon|evening)|today)/.test(t) || /\bat\s+\d/.test(t)) {
+    return { start: cd, end: midnight_(addWorkingDays_(callDate, 1)) };
+  }
+
+  // "tomorrow"
+  if (/\btomorrow\b/.test(t)) {
+    const d = midnight_(addWorkingDays_(callDate, 1));
+    return { start: d, end: d };
+  }
+
+  // "next week" / "nextweek"
+  if (/next\s*(?:week|wk)/.test(t)) return nextWeekWindow_(callDate);
+
+  // "within a week" / "within the week"
+  if (/within\s+(?:a|the)\s+week/.test(t)) {
+    return {
+      start: midnight_(addWorkingDays_(callDate, 1)),
+      end:   midnight_(addWorkingDays_(callDate, 5))
+    };
+  }
+
+  // "1st week of [month]" / "first week of [month]"
+  const fwMatch = t.match(/(?:1st|first)\s+week\s+of\s+([a-z]+)/);
+  if (fwMatch) {
+    const mn = MONTH_MAP_[fwMatch[1]];
+    if (mn !== undefined) {
+      let yr = callDate.getFullYear();
+      let firstMon = new Date(yr, mn, 1);
+      if (midnight_(firstMon) <= cd) firstMon = new Date(++yr, mn, 1);
+      while (firstMon.getDay() !== 1) firstMon.setDate(firstMon.getDate() + 1);
+      const lastDay = new Date(firstMon);
+      lastDay.setDate(lastDay.getDate() + 5);
+      return { start: midnight_(firstMon), end: midnight_(lastDay) };
+    }
+  }
+
+  // "next [weekday]"
+  const DOW = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+  const nextDow = t.match(/next\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/);
+  if (nextDow) {
+    const target = DOW.indexOf(nextDow[1]);
+    const d = new Date(callDate);
+    d.setDate(d.getDate() + 1);
+    while (d.getDay() !== target) d.setDate(d.getDate() + 1);
+    return { start: midnight_(d), end: midnight_(d) };
+  }
+
+  // "later" (generic — no specific day)
+  if (/\blater\b/.test(t)) {
+    return { start: cd, end: midnight_(addWorkingDays_(callDate, 1)) };
+  }
+
+  // Specific date (June 15, 10th of June, the 30th, inline MM/DD)
+  const specific = parseSpecificCallbackDate_(text, callDate);
+  if (specific) return { start: midnight_(specific), end: midnight_(specific) };
+
+  // Callback signal present but no recognisable time → assume within 3 working days
+  return {
+    start: midnight_(addWorkingDays_(callDate, 1)),
+    end:   midnight_(addWorkingDays_(callDate, 3))
+  };
+}
+
+function nextWeekWindow_(fromDate) {
+  const d = new Date(fromDate);
+  d.setDate(d.getDate() + 1);
+  while (d.getDay() !== 1) d.setDate(d.getDate() + 1); // land on Monday
+  const e = new Date(d);
+  e.setDate(e.getDate() + 5); // through Saturday
+  return { start: midnight_(d), end: midnight_(e) };
+}
+
+// Parse all follow-up cells → [{callDate, cbWindow}]
+function parseFollowUpEntries_(followUps, leadDate) {
+  const entries = [];
+  let prev = leadDate;
+  for (let i = 0; i < followUps.length; i++) {
+    const raw = followUps[i];
+    if (!raw) continue;
+    let callDate = parseLeadingDate_(raw, leadDate);
+    if (!callDate) {
+      callDate = (i === 0) ? leadDate : addWorkingDays_(prev, 1);
+    }
+    callDate = midnight_(callDate);
+    entries.push({ callDate, cbWindow: parseCallbackWindow_(raw, callDate) });
+    prev = callDate;
+  }
+  return entries;
+}
+
+// Map of dateKey → 'call' | 'window' for every covered day
+function buildCoverageMap_(entries) {
+  const map = new Map();
+  for (const { callDate, cbWindow } of entries) {
+    map.set(dateKey_(callDate), 'call');
+    if (cbWindow) {
+      const d = new Date(cbWindow.start);
+      while (d <= cbWindow.end) {
+        const k = dateKey_(d);
+        if (!map.has(k)) map.set(k, 'window');
+        d.setDate(d.getDate() + 1);
+      }
+    }
+  }
+  return map;
+}
+
+// ── Main sheet writer ────────────────────────────────────────
 
 function writeFollowUpSheet_(leads, mtdRange, today) {
   const destSS    = SpreadsheetApp.getActiveSpreadsheet();
@@ -300,74 +455,65 @@ function writeFollowUpSheet_(leads, mtdRange, today) {
   const missedRows= [];
 
   leads.forEach(l => {
-    if (l.bucket === 'booked') return;  // booked = no more follow-up needed
+    if (l.bucket === 'booked') return;
     if (!inRange_(l.dateIn, mtdRange) && !inRange_(l.dateConf, mtdRange)) return;
     if (!l.dateIn) return;
 
-    const special   = isSpecialStatusLead_(l);
-    const lastFilled= lastFilledIdx_(l);
+    const special = isSpecialStatusLead_(l);
+    const entries = parseFollowUpEntries_(l.followUps, l.dateIn);
 
+    // Special lead with zero calls = resolved on the spot, nothing to check
+    if (special && entries.length === 0) return;
+
+    // Cutoff: special leads stop at last call (or end of its callback window)
+    let cutoff;
     if (special) {
-      // Only penalise if follow-up was started.
-      // Leads with 0 filled slots were categorised on the spot — skip.
-      if (lastFilled < 0) return;
-
-      // Stopping after the last needed follow-up is correct behaviour.
-      // Only penalise for GAPS within the slots that were actually done.
-      if (!vaMap[l.va]) vaMap[l.va] = { count:0, expected:0, filled:0 };
-      vaMap[l.va].count++;
-
-      for (let slot = 1; slot <= lastFilled + 1; slot++) {
-        const dueDate = addWorkingDays_(l.dateIn, slot);
-        if (midnight_(dueDate) > todayMid) break;            // not yet due
-
-        vaMap[l.va].expected++;
-        if (l.followUps[slot - 1]) {
-          vaMap[l.va].filled++;
-        } else {
-          missedRows.push({
-            va:       l.va,
-            sub:      l.subaccount,
-            name:     l.leadName,
-            leadDate: fmtShort_(l.dateIn),
-            slot:     'Day ' + slot,
-            dueDate:  fmtShort_(dueDate),
-            status:   l.status,
-            note:     'Gap (last follow-up: Day ' + (lastFilled + 1) + ')'
-          });
-        }
-      }
+      const last   = entries[entries.length - 1];
+      const winEnd = last.cbWindow ? last.cbWindow.end : null;
+      cutoff = (winEnd && winEnd > last.callDate) ? winEnd : last.callDate;
     } else {
-      // Standard active lead — every expected slot must be filled.
-      if (!vaMap[l.va]) vaMap[l.va] = { count:0, expected:0, filled:0 };
-      vaMap[l.va].count++;
+      cutoff = todayMid;
+    }
 
-      for (let slot = 1; slot <= 5; slot++) {
-        const dueDate = addWorkingDays_(l.dateIn, slot);
-        if (midnight_(dueDate) > todayMid) break;
+    const coverage = buildCoverageMap_(entries);
 
+    if (!vaMap[l.va]) vaMap[l.va] = { count:0, expected:0, filled:0 };
+    vaMap[l.va].count++;
+
+    // Flag if first contact is 2+ working days after lead date
+    const firstCall    = entries.length > 0 ? entries[0].callDate : null;
+    const maxOkFirst   = midnight_(addWorkingDays_(l.dateIn, 1));
+    const lateFirst    = !!firstCall && firstCall > maxOkFirst;
+
+    // Walk every working day from lead date to cutoff
+    const d = new Date(midnight_(l.dateIn));
+    while (d <= cutoff) {
+      if (!isNonWorkingDay_(d)) {
         vaMap[l.va].expected++;
-        if (l.followUps[slot - 1]) {
+        const key = dateKey_(d);
+        if (coverage.has(key)) {
           vaMap[l.va].filled++;
         } else {
+          const isLateGap = lateFirst && !!firstCall && d < firstCall;
           missedRows.push({
             va:       l.va,
             sub:      l.subaccount,
             name:     l.leadName,
             leadDate: fmtShort_(l.dateIn),
-            slot:     'Day ' + slot,
-            dueDate:  fmtShort_(dueDate),
+            missDate: fmtShort_(new Date(d)),
             status:   l.status,
-            note:     ''
+            note:     isLateGap ? '🚩 Late First Contact' : '',
+            lateFlag: isLateGap
           });
         }
       }
+      d.setDate(d.getDate() + 1);
     }
   });
 
-  // ── Summary rows ────────────────────────────────────────
-  const SCOLS = ['VA','Active Leads','Expected Slots','Filled Slots',
-                 'Adherence %','Score (0–10)','Missed Slots'];
+  // ── Summary ──────────────────────────────────────────────
+  const SCOLS = ['VA','Active Leads','Expected Days','Covered Days',
+                 'Adherence %','Score (0–10)','Missed Days'];
   const SW = SCOLS.length;
 
   const sumRows = Object.entries(vaMap)
@@ -383,52 +529,54 @@ function writeFollowUpSheet_(leads, mtdRange, today) {
       return [va, m.count, m.expected, m.filled, pct_(m.filled, m.expected || 1), score, missed];
     });
 
-  // ── Detail rows ─────────────────────────────────────────
+  // ── Missed detail ─────────────────────────────────────────
   const DCOLS = ['VA','Sub-Account','Lead Name','Lead Date',
-                 'Slot','Due Date','Lead Status','Note'];
+                 'Missed Date','Lead Status','Note'];
   const DW    = DCOLS.length;
   const W     = Math.max(SW, DW);
 
-  const totalMissed = sumRows.reduce((s,r)=>s+(Number(r[6])||0),0);
+  const totalMissed = sumRows.reduce((s,r) => s+(Number(r[6])||0), 0);
+
+  const sortedMissed = [...missedRows].sort((a,b) =>
+    a.va.localeCompare(b.va) ||
+    a.leadDate.localeCompare(b.leadDate) ||
+    a.missDate.localeCompare(b.missDate)
+  );
 
   const OUT = [];
   OUT.push(['FOLLOW-UP ADHERENCE — ' + monthLabel + ' — ' + lastRun]);
   OUT.push([
-    'Working days = Mon–Sat (Sundays + US holidays skipped).  ' +
-    'Standard active leads: every expected slot must be filled.  ' +
-    'Resolved/special-status leads (Spanish, Cancelled, OSA, Unqualified, # Issue, Dup Lead, ' +
-    'Fake Lead, Satellite Quote, Client Handles): penalised only if follow-up started then stopped ' +
-    '(slots after last filled entry count as missed).'
+    'Every working day (Mon–Sat, no holidays) must be covered by a call or callback window. ' +
+    'Callback windows parsed from notes (tomorrow / next week / specific date / later). ' +
+    'Special-status leads: counted up to last call date only. ' +
+    '🚩 Late First Contact = first follow-up was 2+ working days after lead arrived.'
   ]);
   OUT.push(Array(W).fill(''));
-  OUT.push(SCOLS.concat(Array(W-SW).fill('')));
-  sumRows.forEach(r => OUT.push(r.concat(Array(W-SW).fill(''))));
+  OUT.push(SCOLS.concat(Array(W - SW).fill('')));
+  sumRows.forEach(r => OUT.push(r.concat(Array(W - SW).fill(''))));
   OUT.push(Array(W).fill(''));
-  OUT.push(['MISSED FOLLOW-UPS — ' + totalMissed + ' total'].concat(Array(W-1).fill('')));
-  OUT.push(DCOLS.concat(Array(W-DW).fill('')));
-  missedRows
-    .sort((a,b) => a.va.localeCompare(b.va) || a.leadDate.localeCompare(b.leadDate) || a.slot.localeCompare(b.slot))
-    .forEach(r => OUT.push(
-      [r.va, r.sub, r.name, r.leadDate, r.slot, r.dueDate, r.status, r.note]
-      .concat(Array(W-DW).fill(''))
-    ));
+  OUT.push(['MISSED DAYS — ' + totalMissed + ' total'].concat(Array(W - 1).fill('')));
+  OUT.push(DCOLS.concat(Array(W - DW).fill('')));
+  sortedMissed.forEach(r => OUT.push(
+    [r.va, r.sub, r.name, r.leadDate, r.missDate, r.status, r.note]
+    .concat(Array(W - DW).fill(''))
+  ));
 
   writeGrid_(sheet, OUT, W);
 
-  // Formatting
+  // Header / summary formatting
   styleRow_(sheet, 1, W, '#1F3864','#FFFFFF', true,  11);
   styleRow_(sheet, 2, W, '#1F3864','#CCDDFF', false,  9);
   styleRow_(sheet, 4, W, '#2F5496','#FFFFFF', true,  10);
 
   const ds = 5;
   for (let i = 0; i < sumRows.length; i++) {
-    const adh   = parseInt(sumRows[i][4]);   // adherence % string → number
-    const score = sumRows[i][5];             // Score (0–10)
-    const adhCell   = sheet.getRange(ds+i, 5);
-    const scoreCell = sheet.getRange(ds+i, 6);
-
-    let bg, fg;
+    const adh       = parseInt(sumRows[i][4]);
+    const score     = sumRows[i][5];
+    const adhCell   = sheet.getRange(ds + i, 5);
+    const scoreCell = sheet.getRange(ds + i, 6);
     if (!isNaN(adh)) {
+      let bg, fg;
       if      (adh >= 90) { bg = '#C6EFCE'; fg = '#276221'; }
       else if (adh >= 70) { bg = '#FFEB9C'; fg = '#9C5700'; }
       else                { bg = '#FFC7CE'; fg = '#9C0006'; }
@@ -443,19 +591,28 @@ function writeFollowUpSheet_(leads, mtdRange, today) {
 
   const missHeaderRow = ds + sumRows.length + 1;
   const detailHdrRow  = missHeaderRow + 1;
-  styleRow_(sheet, missHeaderRow, W, '#E8F0FE','#1F3864', true,  10);
-  styleRow_(sheet, detailHdrRow,  W, '#4A86E8','#FFFFFF', true,  10);
+  const detailStart   = detailHdrRow + 1;
+  styleRow_(sheet, missHeaderRow, W, '#E8F0FE','#1F3864', true, 10);
+  styleRow_(sheet, detailHdrRow,  W, '#4A86E8','#FFFFFF', true, 10);
 
-  // Merge title rows A:J
+  // Orange highlight for Late First Contact rows
+  for (let i = 0; i < sortedMissed.length; i++) {
+    if (sortedMissed[i].lateFlag) {
+      sheet.getRange(detailStart + i, 1, 1, DW)
+        .setBackground('#FF9900')
+        .setFontColor('#FFFFFF')
+        .setFontWeight('bold');
+    }
+  }
+
   sheet.getRange(1, 1, 1, 10).merge();
   sheet.getRange(2, 1, 1, 10).merge();
-
   sheet.setFrozenRows(4);
   sheet.autoResizeColumns(1, W);
   sheet.setColumnWidth(1, 80);
   sheet.getRange(1, 1, 1, 1).setWrap(true);
   sheet.getRange(2, 1, 1, 1).setWrap(true);
-  Logger.log('Follow-Up Adherence: ' + sumRows.length + ' VAs, ' + totalMissed + ' missed slots');
+  Logger.log('Follow-Up Adherence: ' + sumRows.length + ' VAs, ' + totalMissed + ' missed days');
 }
 
 // ============================================================
@@ -470,7 +627,6 @@ function writeBookingScoresToScorecard_(vaScores) {
     const lastCol = sheet.getLastColumn();
     if (lastCol < SC_START_COL) return;
 
-    // Read VA names from row 4 starting at column C
     const numCols = lastCol - SC_START_COL + 1;
     const vaRow   = sheet.getRange(SC_VA_ROW, SC_START_COL, 1, numCols).getValues()[0];
 
@@ -511,7 +667,7 @@ function addWorkingDays_(startDate, n) {
 }
 
 function isNonWorkingDay_(date) {
-  if (date.getDay() === 0) return true;  // Sunday
+  if (date.getDay() === 0) return true;
   return isUSHoliday_(date);
 }
 
@@ -525,20 +681,18 @@ function buildHolidaySet_(year) {
   const keys = new Set();
   const add  = d => keys.add(d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate());
 
-  // Fixed-date federal holidays
   add(new Date(year,  0,  1));  // New Year's Day
   add(new Date(year,  5, 19));  // Juneteenth
   add(new Date(year,  6,  4));  // Independence Day
   add(new Date(year, 10, 11));  // Veterans Day
   add(new Date(year, 11, 25));  // Christmas
 
-  // Floating federal holidays
-  add(nthWeekday_(year,  0, 1, 3));  // MLK Day:        3rd Mon of Jan
-  add(nthWeekday_(year,  1, 1, 3));  // Presidents Day: 3rd Mon of Feb
-  add(lastWeekday_(year, 4, 1));     // Memorial Day:   last Mon of May
-  add(nthWeekday_(year,  8, 1, 1));  // Labor Day:      1st Mon of Sep
-  add(nthWeekday_(year,  9, 1, 2));  // Columbus Day:   2nd Mon of Oct
-  add(nthWeekday_(year, 10, 4, 4));  // Thanksgiving:   4th Thu of Nov
+  add(nthWeekday_(year,  0, 1, 3));  // MLK Day
+  add(nthWeekday_(year,  1, 1, 3));  // Presidents Day
+  add(lastWeekday_(year, 4, 1));     // Memorial Day
+  add(nthWeekday_(year,  8, 1, 1));  // Labor Day
+  add(nthWeekday_(year,  9, 1, 2));  // Columbus Day
+  add(nthWeekday_(year, 10, 4, 4));  // Thanksgiving
 
   return keys;
 }
@@ -696,7 +850,7 @@ function onOpen() {
     .createMenu('📊 VA Live Stats')
     .addItem('⚡ Refresh Now',                    'refreshLiveStats')
     .addSeparator()
-    .addItem('▶ Start Auto-Refresh (every 1 min)', 'setupLiveTrigger')
+    .addItem('▶ Start Auto-Refresh (every 5 min)', 'setupLiveTrigger')
     .addItem('⏹ Stop Auto-Refresh',                'stopLiveTrigger')
     .addToUi();
 }
