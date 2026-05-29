@@ -114,7 +114,7 @@ function writeBookingRateSheet_(leads, mtdRange, today) {
 
   const vaMap = {};
   leads
-    .filter(l => inRange_(l.dateIn, mtdRange) || inRange_(l.dateConf, mtdRange))
+    .filter(l => inRange_(l.dateIn, mtdRange))
     .forEach(l => {
       if (!vaMap[l.va]) vaMap[l.va] = {
         total:0, booked:0, qualified:0,
@@ -456,7 +456,7 @@ function writeFollowUpSheet_(leads, mtdRange, today) {
 
   leads.forEach(l => {
     if (l.bucket === 'booked') return;
-    if (!inRange_(l.dateIn, mtdRange) && !inRange_(l.dateConf, mtdRange)) return;
+    if (!inRange_(l.dateIn, mtdRange)) return;
     if (!l.dateIn) return;
 
     const special = isSpecialStatusLead_(l);
