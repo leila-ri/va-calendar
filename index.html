@@ -238,7 +238,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--tx);line-height:1.
   <div class="side">
     <div class="card mgr-only" id="flex-card">
       <div class="card-head">Flex Schedule <span id="flex-month-label"></span></div>
-      <p class="card-sub">Click days to toggle. 2 offs per week (Tue–Fri).</p>
+      <p class="card-sub">Click days to toggle. 2 offs per week (Mon–Fri).</p>
       <div id="flex-grid"></div>
       <div class="flex-warn" id="flex-warn"></div>
       <div class="flex-save"><span class="unsaved" id="flex-unsaved">Unsaved</span><button onclick="saveFlexMonth()" id="flex-save-btn" class="btn-sm">Save</button></div>
@@ -519,7 +519,7 @@ function renderFlexGrid(){
   if(!fvs.length){document.getElementById('flex-grid').innerHTML='<div class="empty">No flex VAs.</div>';return}
   const dim=new Date(cY,cM+1,0).getDate();const isMgr=currentUser&&currentUser.isManager;
   const weeks=[];let wk=[];
-  for(let d=1;d<=dim;d++){const dow=new Date(cY,cM,d).getDay();if(dow>=2&&dow<=5)wk.push({d,dow,key:dk(cY,cM,d)});if(dow===5||d===dim){if(wk.length){weeks.push(wk);wk=[]}}}
+  for(let d=1;d<=dim;d++){const dow=new Date(cY,cM,d).getDay();if(dow>=1&&dow<=5)wk.push({d,dow,key:dk(cY,cM,d)});if(dow===5||d===dim){if(wk.length){weeks.push(wk);wk=[]}}}
   let h='<table class="fsg"><tbody>';
   weeks.forEach((w,wi)=>{
     h+='<tr><td colspan="'+(w.length+1)+'" class="wk-lbl">Wk '+(wi+1)+' · '+MO_N[cM].slice(0,3)+' '+w[0].d+'–'+w[w.length-1].d+'</td></tr>';
@@ -542,7 +542,7 @@ function tglFlex(el){if(!currentUser||!currentUser.isManager)return;el.classList
 function valFlex(){
   const fvs=flexVAs;const dim=new Date(cY,cM+1,0).getDate();
   const weeks=[];let wk=[];
-  for(let d=1;d<=dim;d++){const dow=new Date(cY,cM,d).getDay();if(dow>=2&&dow<=5)wk.push(d);if(dow===5||d===dim){if(wk.length){weeks.push(wk);wk=[]}}}
+  for(let d=1;d<=dim;d++){const dow=new Date(cY,cM,d).getDay();if(dow>=1&&dow<=5)wk.push(d);if(dow===5||d===dim){if(wk.length){weeks.push(wk);wk=[]}}}
   const w=[];const om={};
   document.querySelectorAll('.fday.on').forEach(el=>{const va=el.dataset.va;if(!va)return;const dn=parseInt(el.dataset.key.split('-')[2]);if(!om[va])om[va]={};weeks.forEach((wk,wi)=>{if(wk.includes(dn)){if(!om[va][wi])om[va][wi]=0;om[va][wi]++}})});
   fvs.forEach(va=>{weeks.forEach((wk,wi)=>{const c=(om[va]&&om[va][wi])||0;if(c!==2&&wk.length>=2)w.push(va+': '+c+'/2 wk'+(wi+1))})});
