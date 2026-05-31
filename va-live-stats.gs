@@ -66,13 +66,13 @@ function refreshLiveStats() {
   const currRange = getMTDRange_(today);
   const prevRange = getPrevMonthRange_(today);
 
-  // Current month (live, updates every 5 min)
-  writeBookingRateSheet_(leads, currRange, today, 'MTD Booking Rate');
-  writeFollowUpSheet_(leads, currRange, today, offDays, sunCov, 'Follow-Up Adherence');
+  const currMo = fmtMonthShort_(currRange.start);  // e.g. "June"
+  const prevMo = fmtMonthShort_(prevRange.start);  // e.g. "May"
 
-  // Previous month (complete, for reference)
-  writeBookingRateSheet_(leads, prevRange, today, 'Prev Month Booking Rate');
-  writeFollowUpSheet_(leads, prevRange, today, offDays, sunCov, 'Prev Month Follow-Up');
+  writeBookingRateSheet_(leads, currRange, today, currMo + ' Booking Rate');
+  writeFollowUpSheet_(leads, currRange, today, offDays, sunCov, currMo + ' Follow-Up Adherence');
+  writeBookingRateSheet_(leads, prevRange, today, prevMo + ' Booking Rate');
+  writeFollowUpSheet_(leads, prevRange, today, offDays, sunCov, prevMo + ' Follow-Up Adherence');
 
   Logger.log('Live stats updated — ' + today.toISOString());
 }
@@ -907,6 +907,9 @@ function fmtShort_(d) {
 }
 function fmtMonth_(d) {
   return Utilities.formatDate(d, Session.getScriptTimeZone(), 'MMMM yyyy');
+}
+function fmtMonthShort_(d) {
+  return Utilities.formatDate(d, Session.getScriptTimeZone(), 'MMMM');
 }
 function fmtTs_(d) {
   return 'Last updated: ' + Utilities.formatDate(d, Session.getScriptTimeZone(), 'MMM d, yyyy h:mm a');
