@@ -69,8 +69,8 @@ function refreshLiveStats() {
   const currMo = fmtMonthShort_(currRange.start);  // e.g. "June"
   const prevMo = fmtMonthShort_(prevRange.start);  // e.g. "May"
 
-  writeBookingRateSheet_(leads, currRange, today, currMo + ' Booking Rate');
-  writeFollowUpSheet_(leads, currRange, today, offDays, sunCov, currMo + ' Follow-Up Adherence');
+  writeBookingRateSheet_(leads, currRange, today, 'MTD Booking Rate');
+  writeFollowUpSheet_(leads, currRange, today, offDays, sunCov, 'Follow-Up Adherence');
   writeBookingRateSheet_(leads, prevRange, today, prevMo + ' Booking Rate');
   writeFollowUpSheet_(leads, prevRange, today, offDays, sunCov, prevMo + ' Follow-Up Adherence');
 
