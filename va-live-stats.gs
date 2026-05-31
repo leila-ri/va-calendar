@@ -504,15 +504,8 @@ function writeFollowUpSheet_(leads, mtdRange, today, offDays, sunCov, tabName) {
 
     const coverage = buildCoverageMap_(entries);
 
-    // Resolve and validate core/flex VA names — filter out note content
-    const leadDow = l.dateIn.getDay();
-    const coreVA  = isValidVAName_(l.coreVA) ? l.coreVA : null;
-    const flexVA  = isValidVAName_(l.flexVA) ? l.flexVA : null;
-
-    // Lead count → primary VA (flex for Sat leads, core for weekday leads)
-    const primaryVA = (leadDow === 6) ? (flexVA || l.va) : (coreVA || l.va);
-    if (!vaMap[primaryVA]) vaMap[primaryVA] = { count:0, expected:0, filled:0 };
-    vaMap[primaryVA].count++;
+    if (!vaMap[l.va]) vaMap[l.va] = { count:0, expected:0, filled:0 };
+    vaMap[l.va].count++;
 
     // Flag if first contact is 2+ expected days after lead date
     const firstCall  = entries.length > 0 ? entries[0].callDate : null;
@@ -522,31 +515,17 @@ function writeFollowUpSheet_(leads, mtdRange, today, offDays, sunCov, tabName) {
     // Walk every expected day from lead date to cutoff
     const d = new Date(midnight_(l.dateIn));
     while (d <= cutoff) {
-      const dow = d.getDay();
-
       if (!isExpectedNonWorkingDay_(d, hasSunCov)) {
-        // Responsibility: Sat/Sun or any day of a Sat lead → flex VA; weekday lead → core VA
-        let respVA = (dow === 6 || dow === 0 || leadDow === 6)
-          ? (flexVA || l.va)
-          : (coreVA || l.va);
-
-        // If this flex VA is off that day, shift to core VA
-        const dkPad  = dateKeyPadded_(d);
-        const offSet = offDays.get(dkPad);
-        if (offSet && respVA && offSet.has(respVA.toLowerCase().trim())) {
-          respVA = coreVA || l.va;
-        }
-
-        if (!vaMap[respVA]) vaMap[respVA] = { count:0, expected:0, filled:0 };
-        vaMap[respVA].expected++;
+        if (!vaMap[l.va]) vaMap[l.va] = { count:0, expected:0, filled:0 };
+        vaMap[l.va].expected++;
 
         const key = dateKey_(d);
         if (coverage.has(key)) {
-          vaMap[respVA].filled++;
+          vaMap[l.va].filled++;
         } else {
           const isLateGap = lateFirst && !!firstCall && d < firstCall;
           missedRows.push({
-            va:       respVA,
+            va:       l.va,
             sub:      l.subaccount,
             name:     l.leadName,
             leadDate: fmtShort_(l.dateIn),
@@ -818,14 +797,6 @@ function dateKeyPadded_(d) {
     + String(d.getDate()).padStart(2, '0');
 }
 
-// Guard: rejects follow-up note text masquerading as a VA name
-function isValidVAName_(s) {
-  if (!s || s.length < 2) return false;
-  if (/^\d{1,2}[\/\-]/.test(s)) return false;         // "5/26", "05/12" etc.
-  if (/^(mon|tue|wed|thu|fri|sat|sun)\b/i.test(s)) return false;
-  if (/^within\b/i.test(s)) return false;
-  return true;
-}
 
 function isNonWorkingDay_(date) {
   if (date.getDay() === 0) return true;
