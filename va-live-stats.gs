@@ -58,24 +58,11 @@ const COL_FU1        = 11;  // L–P follow-up slots (5 total)
 // ============================================================
 
 function refreshLiveStats() {
-  const today   = new Date();
-  const leads   = loadLeads_();
-  const offDays = loadOffDays_();
-  const sunCov  = loadSundayCoverage_();
-
-  // Use the most recent month that actually has leads.
-  // Handles the case where the script timezone rolls into a new month before
-  // leads exist for it (e.g. Philippines UTC+8 at 12–2 AM on the 1st).
-  let mtdRange = getMTDRange_(today);
-  if (!leads.some(l => l.dateIn && inRange_(l.dateIn, mtdRange))) {
-    const prev = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-    mtdRange = {
-      start: new Date(prev.getFullYear(), prev.getMonth(), 1, 0, 0, 0, 0),
-      end:   new Date(prev.getFullYear(), prev.getMonth() + 1, 0, 23, 59, 59, 999)
-    };
-    Logger.log('No leads in current month — falling back to previous month');
-  }
-
+  const today    = new Date();
+  const mtdRange = getMTDRange_(today);
+  const leads    = loadLeads_();
+  const offDays  = loadOffDays_();
+  const sunCov   = loadSundayCoverage_();
   writeBookingRateSheet_(leads, mtdRange, today);
   writeFollowUpSheet_(leads, mtdRange, today, offDays, sunCov);
   Logger.log('Live stats updated — ' + today.toISOString());
@@ -128,7 +115,7 @@ function followUpScore_(adherence) {
 function writeBookingRateSheet_(leads, mtdRange, today) {
   const destSS    = SpreadsheetApp.getActiveSpreadsheet();
   const sheet     = resetSheet_(destSS, 'MTD Booking Rate');
-  const monthLabel= fmtMonth_(mtdRange.start);  // label from range, not local clock
+  const monthLabel= fmtMonth_(today);
   const lastRun   = fmtTs_(today);
 
   const EXCL_DISP = new Set(['osa','unqualified','dup lead','# issue','#issue']);
@@ -471,7 +458,7 @@ function writeFollowUpSheet_(leads, mtdRange, today, offDays, sunCov) {
 
   const destSS    = SpreadsheetApp.getActiveSpreadsheet();
   const sheet     = resetSheet_(destSS, 'Follow-Up Adherence');
-  const monthLabel= fmtMonth_(mtdRange.start);  // label from range, not local clock
+  const monthLabel= fmtMonth_(today);
   const lastRun   = fmtTs_(today);
   const todayMid  = midnight_(today);
 
