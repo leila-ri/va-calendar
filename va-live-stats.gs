@@ -59,12 +59,21 @@ const COL_FU1        = 11;  // L–P follow-up slots (5 total)
 
 function refreshLiveStats() {
   const today    = new Date();
-  const mtdRange = getMTDRange_(today);
   const leads    = loadLeads_();
   const offDays  = loadOffDays_();
   const sunCov   = loadSundayCoverage_();
-  writeBookingRateSheet_(leads, mtdRange, today);
-  writeFollowUpSheet_(leads, mtdRange, today, offDays, sunCov);
+
+  const currRange = getMTDRange_(today);
+  const prevRange = getPrevMonthRange_(today);
+
+  // Current month (live, updates every 5 min)
+  writeBookingRateSheet_(leads, currRange, today, 'MTD Booking Rate');
+  writeFollowUpSheet_(leads, currRange, today, offDays, sunCov, 'Follow-Up Adherence');
+
+  // Previous month (complete, for reference)
+  writeBookingRateSheet_(leads, prevRange, today, 'Prev Month Booking Rate');
+  writeFollowUpSheet_(leads, prevRange, today, offDays, sunCov, 'Prev Month Follow-Up');
+
   Logger.log('Live stats updated — ' + today.toISOString());
 }
 
@@ -112,10 +121,10 @@ function followUpScore_(adherence) {
 // SHEET 1: MTD BOOKING RATE
 // ============================================================
 
-function writeBookingRateSheet_(leads, mtdRange, today) {
+function writeBookingRateSheet_(leads, mtdRange, today, tabName) {
   const destSS    = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet     = resetSheet_(destSS, 'MTD Booking Rate');
-  const monthLabel= fmtMonth_(today);
+  const sheet     = resetSheet_(destSS, tabName || 'MTD Booking Rate');
+  const monthLabel= fmtMonth_(mtdRange.start);
   const lastRun   = fmtTs_(today);
 
   const EXCL_DISP = new Set(['osa','unqualified','dup lead','# issue','#issue']);
@@ -452,13 +461,13 @@ function buildCoverageMap_(entries) {
 
 // ── Main sheet writer ────────────────────────────────────────
 
-function writeFollowUpSheet_(leads, mtdRange, today, offDays, sunCov) {
+function writeFollowUpSheet_(leads, mtdRange, today, offDays, sunCov, tabName) {
   offDays = offDays || new Map();
   sunCov  = sunCov  || new Map();
 
   const destSS    = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet     = resetSheet_(destSS, 'Follow-Up Adherence');
-  const monthLabel= fmtMonth_(today);
+  const sheet     = resetSheet_(destSS, tabName || 'Follow-Up Adherence');
+  const monthLabel= fmtMonth_(mtdRange.start);
   const lastRun   = fmtTs_(today);
   const todayMid  = midnight_(today);
 
@@ -871,6 +880,15 @@ function getMTDRange_(today) {
   return {
     start: new Date(today.getFullYear(), today.getMonth(), 1, 0, 0, 0, 0),
     end:   new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999)
+  };
+}
+
+function getPrevMonthRange_(today) {
+  // Full previous calendar month (1st → last day)
+  const prev = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  return {
+    start: new Date(prev.getFullYear(), prev.getMonth(), 1, 0, 0, 0, 0),
+    end:   new Date(prev.getFullYear(), prev.getMonth() + 1, 0, 23, 59, 59, 999)
   };
 }
 
