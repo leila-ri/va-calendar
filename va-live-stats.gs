@@ -433,7 +433,8 @@ function parseFollowUpEntries_(followUps, leadDate) {
     if (!raw) continue;
     let callDate = parseLeadingDate_(raw, leadDate);
     if (!callDate) {
-      callDate = (i === 0) ? leadDate : addWorkingDays_(prev, 1);
+      // First actual entry with no date → assume called on lead date (never late)
+      callDate = entries.length === 0 ? leadDate : addWorkingDays_(prev, 1);
     }
     callDate = midnight_(callDate);
     entries.push({ callDate, cbWindow: parseCallbackWindow_(raw, callDate) });
