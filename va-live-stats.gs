@@ -469,7 +469,10 @@ function writeFollowUpSheet_(leads, mtdRange, today, offDays, sunCov, tabName) {
   const sheet     = resetSheet_(destSS, tabName || 'Follow-Up Adherence');
   const monthLabel= fmtMonth_(mtdRange.start);
   const lastRun   = fmtTs_(today);
-  const todayMid  = midnight_(today);
+  // For past months, cap at end of range (not actual today) so leads on the
+  // last day of the month are fully evaluated rather than cut off early.
+  const rangeMid  = midnight_(mtdRange.end);
+  const todayMid  = rangeMid.getTime() < midnight_(today).getTime() ? rangeMid : midnight_(today);
 
   const vaMap     = {};
   const missedRows= [];
