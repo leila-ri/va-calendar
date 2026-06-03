@@ -154,9 +154,18 @@ function writeBookingRateSheet_(leads, mtdRange, today, tabName) {
       };
       const m = vaMap[l.va];
 
-      // Col I doubles as "Who confirmed?" for booked leads.
-      // If confirmed by a different VA, exclude from this VA's totals entirely.
-      const isConfByOther = l.bucket === 'booked' && !!l.disp &&
+      // Col I doubles as "Who confirmed?" for booked leads, but sometimes holds a
+      // disposition text instead (e.g. "not interested", "CB Thursday"). Only treat
+      // it as a different confirmer when it's not a known disposition value.
+      const DISP_VALS = new Set([
+        'osa','unqualified','dup lead','# issue','#issue','fake','fake lead',
+        'not interested','not responding','not booked','unconfirmed',
+        'satellite quote','call back','callback',
+        'cb thursday','cb thursday pm','cb friday','cb monday','cb tuesday','cb wednesday'
+      ]);
+      const isConfByOther = l.bucket === 'booked' &&
+                            !!l.disp &&
+                            !DISP_VALS.has(l.disp) &&
                             l.disp !== l.va.toLowerCase();
       if (isConfByOther) { m.exclConfOther++; return; }
 
@@ -1033,7 +1042,8 @@ function getStatusBucket_(status) {
   if (s.includes('cancelled') || s.includes('invalid')) return 'cancelled';
   if (['not booked','unconfirmed','not responding','call back'].includes(s))
                                                          return 'notResponding';
-  if (s === 'client handles' || s === 'satellite quote') return 'clientHandles';
+  if (s === 'client handles') return 'clientHandles';
+  if (s === 'satellite quote') return 'other';  // always qualifies
   if (s === 'reschedule needed')                         return 'reschedule';
   return 'other';
 }
