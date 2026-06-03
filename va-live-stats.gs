@@ -167,7 +167,7 @@ function writeBookingRateSheet_(leads, mtdRange, today, tabName) {
 
       const isSpecial   = EXCLUDE_CLIENT_HANDLES_ACCTS.includes(l.subaccount);
       const isCancelled = l.bucket === 'cancelled';
-      const isExclDisp  = EXCL_DISP.has(l.disp);
+      const isExclDisp  = EXCL_DISP.has(l.disp) || l.status.toLowerCase().includes('spanish');
       const isExclCH    = isSpecial && l.bucket === 'clientHandles';
 
       if (isCancelled) m.cancelled++;
