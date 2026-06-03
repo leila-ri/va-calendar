@@ -144,28 +144,25 @@ function writeBookingRateSheet_(leads, mtdRange, today, tabName) {
 
   const EXCL_DISP = new Set(['osa','unqualified','dup lead','# issue','#issue']);
 
+  // Build a whitelist of known VA names from col A across all in-range leads.
+  // Used to distinguish "Rovy confirmed this" from "CB Thursday" in col I.
+  const inRangeLeads = leads.filter(l => inRange_(l.dateIn, mtdRange));
+  const knownVAs = new Set(inRangeLeads.map(l => l.va.toLowerCase()));
+
   const vaMap = {};
-  leads
-    .filter(l => inRange_(l.dateIn, mtdRange))
-    .forEach(l => {
+  inRangeLeads.forEach(l => {
       if (!vaMap[l.va]) vaMap[l.va] = {
         total:0, booked:0, qualified:0,
         cancelled:0, exclDisp:0, exclCH:0, exclConfOther:0
       };
       const m = vaMap[l.va];
 
-      // Col I doubles as "Who confirmed?" for booked leads, but sometimes holds a
-      // disposition text instead (e.g. "not interested", "CB Thursday"). Only treat
-      // it as a different confirmer when it's not a known disposition value.
-      const DISP_VALS = new Set([
-        'osa','unqualified','dup lead','# issue','#issue','fake','fake lead',
-        'not interested','not responding','not booked','unconfirmed',
-        'satellite quote','call back','callback',
-        'cb thursday','cb thursday pm','cb friday','cb monday','cb tuesday','cb wednesday'
-      ]);
+      // Col I is "Who confirmed?" for booked leads but also holds dispositions
+      // (CB Thursday, not interested, etc.). Only treat it as a different confirmer
+      // when the value is a known VA name (appears in col A somewhere this month).
       const isConfByOther = l.bucket === 'booked' &&
                             !!l.disp &&
-                            !DISP_VALS.has(l.disp) &&
+                            knownVAs.has(l.disp) &&
                             l.disp !== l.va.toLowerCase();
       if (isConfByOther) {
         m.exclConfOther++;
