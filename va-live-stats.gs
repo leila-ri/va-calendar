@@ -142,60 +142,68 @@ function writeBookingRateSheet_(leads, mtdRange, today, tabName) {
   const monthLabel= fmtMonth_(mtdRange.start);
   const lastRun   = fmtTs_(today);
 
-  const EXCL_DISP = new Set(['osa','unqualified','dup lead','# issue','#issue']);
+  // Dispositions in col I that make a lead excluded (regardless of status)
+  const EXCL_DISP = new Set([
+    'osa','unqualified','dup lead','# issue','#issue',
+    'fake','fake lead','offboarded','test lead'
+  ]);
 
-  // Build a whitelist of known VA names from col A across all in-range leads.
-  // Used to distinguish "Rovy confirmed this" from "CB Thursday" in col I.
-  const inRangeLeads = leads.filter(l => inRange_(l.dateIn, mtdRange));
+  // Include leads that came in this month, PLUS leads confirmed this month
+  // (VAs may follow up prior-month leads and confirm them in the current month).
+  const inRangeLeads = leads.filter(l =>
+    inRange_(l.dateIn, mtdRange) ||
+    (l.bucket === 'booked' && inRange_(l.dateConf, mtdRange))
+  );
+
+  // VA name whitelist built from col A — used to distinguish "Rovy confirmed this"
+  // from "CB Thursday" appearing in col I.
   const knownVAs = new Set(inRangeLeads.map(l => l.va.toLowerCase()));
 
   const vaMap = {};
   inRangeLeads.forEach(l => {
-      if (!vaMap[l.va]) vaMap[l.va] = {
-        total:0, booked:0, qualified:0,
-        cancelled:0, exclDisp:0, exclCH:0, exclConfOther:0
-      };
-      const m = vaMap[l.va];
+    if (!vaMap[l.va]) vaMap[l.va] = {
+      total:0, booked:0, qualified:0,
+      cancelled:0, exclDisp:0, exclCH:0, exclConfOther:0
+    };
+    const m = vaMap[l.va];
 
-      // Col I is "Who confirmed?" for booked leads but also holds dispositions
-      // (CB Thursday, not interested, etc.). Only treat it as a different confirmer
-      // when the value is a known VA name (appears in col A somewhere this month).
-      const isConfByOther = l.bucket === 'booked' &&
-                            !!l.disp &&
-                            knownVAs.has(l.disp) &&
-                            l.disp !== l.va.toLowerCase();
-      if (isConfByOther) {
-        m.exclConfOther++;
-        // Give credit to whoever actually confirmed (col I).
-        // Match case-insensitively to any existing vaMap entry so "rovy" joins "Rovy".
-        const confLower = l.disp;
-        let confKey = Object.keys(vaMap).find(k => k.toLowerCase() === confLower);
-        if (!confKey) {
-          confKey = confLower.replace(/\b\w/g, c => c.toUpperCase());  // title-case
-          vaMap[confKey] = { total:0, booked:0, qualified:0, cancelled:0, exclDisp:0, exclCH:0, exclConfOther:0 };
-        }
-        vaMap[confKey].total++;
-        vaMap[confKey].qualified++;
-        if (l.bucket === 'booked' && inRange_(l.dateConf, mtdRange)) vaMap[confKey].booked++;
-        return;
+    // If col I has a known VA name that differs from col A, the credit goes to the
+    // confirmer — exclude from original VA and credit the confirmer instead.
+    const isConfByOther = l.bucket === 'booked' &&
+                          !!l.disp &&
+                          knownVAs.has(l.disp) &&
+                          l.disp !== l.va.toLowerCase();
+    if (isConfByOther) {
+      m.exclConfOther++;
+      const confLower = l.disp;
+      let confKey = Object.keys(vaMap).find(k => k.toLowerCase() === confLower);
+      if (!confKey) {
+        confKey = confLower.replace(/\b\w/g, c => c.toUpperCase());
+        vaMap[confKey] = { total:0, booked:0, qualified:0, cancelled:0, exclDisp:0, exclCH:0, exclConfOther:0 };
       }
+      vaMap[confKey].total++;
+      vaMap[confKey].qualified++;
+      if (inRange_(l.dateConf, mtdRange)) vaMap[confKey].booked++;
+      return;
+    }
 
-      m.total++;
-      // Booked = confirmed status AND the confirmation date (col J) falls in this month.
-      // A lead confirmed in a different month is not counted as booked here.
-      if (l.bucket === 'booked' && inRange_(l.dateConf, mtdRange)) m.booked++;
+    m.total++;
+    if (l.bucket === 'booked' && inRange_(l.dateConf, mtdRange)) m.booked++;
 
-      const isSpecial   = EXCLUDE_CLIENT_HANDLES_ACCTS.includes(l.subaccount);
-      const isCancelled = l.bucket === 'cancelled';
-      const isExclDisp  = EXCL_DISP.has(l.disp) || l.status.toLowerCase().includes('spanish');
-      const isExclCH    = isSpecial && l.bucket === 'clientHandles';
+    // Cancelled/Invalid + "not interested" in col I = qualified (real attempt, lead declined).
+    // Cancelled/Invalid + any other reason = excluded.
+    const isCancelled = l.bucket === 'cancelled' && l.disp !== 'not interested';
+    // Col I exclusions (OSA, unqualified, fake, etc.) exclude regardless of status.
+    const isExclDisp  = EXCL_DISP.has(l.disp) || l.status.toLowerCase().includes('spanish');
+    // Client Handles = always excluded (all accounts).
+    const isExclCH    = l.bucket === 'clientHandles';
 
-      if (isCancelled) m.cancelled++;
-      else if (isExclDisp) m.exclDisp++;
-      else if (isExclCH)   m.exclCH++;
+    if (isCancelled) m.cancelled++;
+    else if (isExclDisp) m.exclDisp++;
+    else if (isExclCH)   m.exclCH++;
 
-      if (!isCancelled && !isExclDisp && !isExclCH) m.qualified++;
-    });
+    if (!isCancelled && !isExclDisp && !isExclCH) m.qualified++;
+  });
 
   const COLS = [
     'VA','Total Leads','Qualified Leads','Booked',
@@ -208,6 +216,7 @@ function writeBookingRateSheet_(leads, mtdRange, today, tabName) {
   const vaScores = {};
 
   const rows = Object.entries(vaMap)
+    .filter(([, m]) => m.total > 0)  // skip VAs whose leads were all reassigned to confirmer
     .sort((a,b) => {
       const ra = a[1].qualified ? a[1].booked/a[1].qualified : 0;
       const rb = b[1].qualified ? b[1].booked/b[1].qualified : 0;
@@ -235,9 +244,10 @@ function writeBookingRateSheet_(leads, mtdRange, today, tabName) {
   const OUT = [
     ['MTD BOOKING RATE — ' + monthLabel + ' — ' + lastRun],
     [
-      'Booking Rate = Booked ÷ Qualified Leads.  ' +
-      'Excluded: Cancelled/Invalid · OSA · Unqualified · Dup Lead · # Issue · ' +
-      'Client Handles (Outstanding Roofing + Good Guy Roofing only).  ' +
+      'Qualified: Not Booked · Not Responding · Unconfirmed · Confirmed · Manual Booked · ' +
+      'Satellite Quote · Reschedule Needed · Call Back · Cancelled+Not Interested.  ' +
+      'Not qualified: Client Handles · Spanish · OSA · Unqualified · Dup Lead · # Issue · Fake · Offboarded · Test Lead · Cancelled (other reason).  ' +
+      'Bookings include prior-month leads confirmed this month.  ' +
       'Score: 45%+=10 · 40%=9 · 35%=8 · 30%=7 · 25%=6 · 20%=5 · 15%=4 · 10%=3 · 5%=2 · 1%=1 · 0%=0'
     ],
     Array(W).fill(''),
