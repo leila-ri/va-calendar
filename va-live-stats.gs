@@ -76,8 +76,18 @@ function refreshLiveStats() {
 
   writeBookingRateSheet_(leads, currRange, today, 'MTD Booking Rate');
   writeFollowUpSheet_(leads, currRange, today, offDays, sunCov, vaAsmt, 'Follow-Up Adherence');
-  writeBookingRateSheet_(leads, prevRange, today, prevMo + ' Booking Rate');
-  writeFollowUpSheet_(leads, prevRange, today, offDays, sunCov, vaAsmt, prevMo + ' Follow-Up Adherence');
+
+  // Previous month sheets are written once and then left alone — they are final
+  // the moment the month ends, so we never overwrite them on subsequent runs.
+  const destSS    = SpreadsheetApp.getActiveSpreadsheet();
+  const prevBRTab = prevMo + ' Booking Rate';
+  const prevFUTab = prevMo + ' Follow-Up Adherence';
+  if (!destSS.getSheetByName(prevBRTab)) {
+    writeBookingRateSheet_(leads, prevRange, today, prevBRTab);
+  }
+  if (!destSS.getSheetByName(prevFUTab)) {
+    writeFollowUpSheet_(leads, prevRange, today, offDays, sunCov, vaAsmt, prevFUTab);
+  }
 
   Logger.log('Live stats updated — ' + today.toISOString());
 }
