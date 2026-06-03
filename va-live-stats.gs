@@ -150,9 +150,16 @@ function writeBookingRateSheet_(leads, mtdRange, today, tabName) {
     .forEach(l => {
       if (!vaMap[l.va]) vaMap[l.va] = {
         total:0, booked:0, qualified:0,
-        cancelled:0, exclDisp:0, exclCH:0
+        cancelled:0, exclDisp:0, exclCH:0, exclConfOther:0
       };
       const m = vaMap[l.va];
+
+      // Col I doubles as "Who confirmed?" for booked leads.
+      // If confirmed by a different VA, exclude from this VA's totals entirely.
+      const isConfByOther = l.bucket === 'booked' && !!l.disp &&
+                            l.disp !== l.va.toLowerCase();
+      if (isConfByOther) { m.exclConfOther++; return; }
+
       m.total++;
       // Booked = confirmed status AND the confirmation date (col J) falls in this month.
       // A lead confirmed in a different month is not counted as booked here.
@@ -173,7 +180,8 @@ function writeBookingRateSheet_(leads, mtdRange, today, tabName) {
   const COLS = [
     'VA','Total Leads','Qualified Leads','Booked',
     'Booking Rate','Score (0–10)','KPI (45%+)',
-    'Cancelled / Invalid','Excluded Dispositions','Client Handles (excl.)'
+    'Cancelled / Invalid','Excluded Dispositions','Client Handles (excl.)',
+    'Conf. by Other (excl.)'
   ];
   const W = COLS.length;
 
@@ -194,12 +202,12 @@ function writeBookingRateSheet_(leads, mtdRange, today, tabName) {
         va, m.total, m.qualified, m.booked,
         rate !== null ? pct_(m.booked, m.qualified) : 'N/A',
         score, kpi,
-        m.cancelled, m.exclDisp, m.exclCH
+        m.cancelled, m.exclDisp, m.exclCH, m.exclConfOther
       ];
     });
 
   const gt = Array(W).fill(''); gt[0] = 'TOTAL';
-  [1,2,3,7,8,9].forEach(i => { gt[i] = rows.reduce((s,r)=>s+(Number(r[i])||0),0); });
+  [1,2,3,7,8,9,10].forEach(i => { gt[i] = rows.reduce((s,r)=>s+(Number(r[i])||0),0); });
   gt[4] = gt[2] > 0 ? pct_(gt[3], gt[2]) : 'N/A';
   gt[5] = bookingScore_(gt[2] > 0 ? gt[3]/gt[2] : null);
   gt[6] = gt[2] > 0 ? (gt[3]/gt[2] >= BOOKING_KPI ? '✓ Met' : '✗ Below') : '—';
@@ -224,8 +232,8 @@ function writeBookingRateSheet_(leads, mtdRange, today, tabName) {
   styleRow_(sheet, 4, W, '#2F5496','#FFFFFF', true,  10);
   styleRow_(sheet, 5, W, '#F2F2F2','#000000', true,  10);
 
-  sheet.getRange(1, 1, 1, 10).merge();
-  sheet.getRange(2, 1, 1, 10).merge();
+  sheet.getRange(1, 1, 1, W).merge();
+  sheet.getRange(2, 1, 1, W).merge();
 
   const ds = 6;
   for (let i = 0; i < rows.length; i++) {
