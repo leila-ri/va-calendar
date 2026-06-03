@@ -286,7 +286,6 @@ function isSpecialStatusLead_(l) {
   if (d === '# issue' || d === '#issue') return true;
   if (d === 'dup lead')                return true;
   if (d === 'fake lead' || d === 'fake') return true;
-  if (d === 'not interested')          return true;
 
   return false;
 }
