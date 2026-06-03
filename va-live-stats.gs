@@ -167,7 +167,21 @@ function writeBookingRateSheet_(leads, mtdRange, today, tabName) {
                             !!l.disp &&
                             !DISP_VALS.has(l.disp) &&
                             l.disp !== l.va.toLowerCase();
-      if (isConfByOther) { m.exclConfOther++; return; }
+      if (isConfByOther) {
+        m.exclConfOther++;
+        // Give credit to whoever actually confirmed (col I).
+        // Match case-insensitively to any existing vaMap entry so "rovy" joins "Rovy".
+        const confLower = l.disp;
+        let confKey = Object.keys(vaMap).find(k => k.toLowerCase() === confLower);
+        if (!confKey) {
+          confKey = confLower.replace(/\b\w/g, c => c.toUpperCase());  // title-case
+          vaMap[confKey] = { total:0, booked:0, qualified:0, cancelled:0, exclDisp:0, exclCH:0, exclConfOther:0 };
+        }
+        vaMap[confKey].total++;
+        vaMap[confKey].qualified++;
+        if (l.bucket === 'booked' && inRange_(l.dateConf, mtdRange)) vaMap[confKey].booked++;
+        return;
+      }
 
       m.total++;
       // Booked = confirmed status AND the confirmation date (col J) falls in this month.
