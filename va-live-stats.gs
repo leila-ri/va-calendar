@@ -41,6 +41,12 @@ const EXCLUDE_CLIENT_HANDLES_ACCTS = ['Outstanding Roofing', 'Good Guy Roofing']
 const COVERAGE_SS_ID = '1RmLtprnhJxhY7asBbUSPuiahD4H8vbz_dIb42Y__wr0';
 const CALENDAR_API   = 'https://script.google.com/macros/s/AKfycbwQdE3oeV_UWrUr4i5yYo9T_kzTRHKGjx2erFl7OI27d5La1BmUEoRImUE-INyWvVTuJg/exec';
 
+// Flex VAs who started mid-period — only treated as flex on/after this date.
+// Add a new entry here whenever a VA transitions from core → flex.
+const FLEX_VA_EFFECTIVE = {
+  'jessica': new Date(2026, 5, 5)   // June 5, 2026
+};
+
 // Source column indices (0-based)
 const COL_VA         = 0;   // A — VA who handled the lead
 const COL_DATE_IN    = 1;   // B — date lead came in
@@ -60,6 +66,7 @@ function refreshLiveStats() {
   const leads    = loadLeads_();
   const offDays  = loadOffDays_();
   const sunCov   = loadSundayCoverage_();
+  const vaAsmt   = loadVAAssignments_();
 
   const currRange = getMTDRange_(today);
   const prevRange = getPrevMonthRange_(today);
@@ -68,9 +75,9 @@ function refreshLiveStats() {
   const prevMo = fmtMonthShort_(prevRange.start);  // e.g. "May"
 
   writeBookingRateSheet_(leads, currRange, today, 'MTD Booking Rate');
-  writeFollowUpSheet_(leads, currRange, today, offDays, sunCov, 'Follow-Up Adherence');
+  writeFollowUpSheet_(leads, currRange, today, offDays, sunCov, vaAsmt, 'Follow-Up Adherence');
   writeBookingRateSheet_(leads, prevRange, today, prevMo + ' Booking Rate');
-  writeFollowUpSheet_(leads, prevRange, today, offDays, sunCov, prevMo + ' Follow-Up Adherence');
+  writeFollowUpSheet_(leads, prevRange, today, offDays, sunCov, vaAsmt, prevMo + ' Follow-Up Adherence');
 
   Logger.log('Live stats updated — ' + today.toISOString());
 }
@@ -460,9 +467,10 @@ function buildCoverageMap_(entries) {
 
 // ── Main sheet writer ────────────────────────────────────────
 
-function writeFollowUpSheet_(leads, mtdRange, today, offDays, sunCov, tabName) {
-  offDays = offDays || new Map();
-  sunCov  = sunCov  || new Map();
+function writeFollowUpSheet_(leads, mtdRange, today, offDays, sunCov, vaAssignments, tabName) {
+  offDays       = offDays       || new Map();
+  sunCov        = sunCov        || new Map();
+  vaAssignments = vaAssignments || new Map();
 
   const destSS    = SpreadsheetApp.getActiveSpreadsheet();
   const sheet     = resetSheet_(destSS, tabName || 'Follow-Up Adherence');
@@ -511,26 +519,35 @@ function writeFollowUpSheet_(leads, mtdRange, today, offDays, sunCov, tabName) {
     const maxOkFirst = midnight_(addExpectedDays_(l.dateIn, 1, hasSunCov));
     const lateFirst  = !!firstCall && firstCall > maxOkFirst;
 
-    // Walk every expected day from lead date to cutoff
+    // Walk every expected day from lead date to cutoff.
+    // Responsibility shifts on flex-off days (→ core VA) and core holidays (→ flex VA).
     const d = new Date(midnight_(l.dateIn));
     while (d <= cutoff) {
       if (!isExpectedNonWorkingDay_(d, hasSunCov)) {
-        if (!vaMap[l.va]) vaMap[l.va] = { count:0, expected:0, filled:0 };
-        vaMap[l.va].expected++;
+        const respVA = getResponsibleVA_(new Date(d), l.va, l.subaccount, offDays, vaAssignments);
+        if (!vaMap[respVA]) vaMap[respVA] = { count:0, expected:0, filled:0 };
+        vaMap[respVA].expected++;
 
         const key = dateKey_(d);
         if (coverage.has(key)) {
-          vaMap[l.va].filled++;
+          vaMap[respVA].filled++;
         } else {
           const isLateGap = lateFirst && !!firstCall && d < firstCall;
+          let note = isLateGap ? '🚩 Late First Contact' : '';
+          if (respVA !== l.va) {
+            const shifted = isUSHoliday_(new Date(d))
+              ? '🎌 Core holiday — Flex on duty'
+              : '📅 Flex off — Core on duty';
+            note = note ? note + ' · ' + shifted : shifted;
+          }
           missedRows.push({
-            va:       l.va,
+            va:       respVA,
             sub:      l.subaccount,
             name:     l.leadName,
             leadDate: fmtShort_(l.dateIn),
             missDate: fmtShort_(new Date(d)),
             status:   l.status,
-            note:     isLateGap ? '🚩 Late First Contact' : '',
+            note,
             lateFlag: isLateGap
           });
         }
@@ -751,6 +768,74 @@ function loadSundayCoverage_() {
     Logger.log('loadSundayCoverage_: ' + map.size + ' accounts loaded');
   } catch(e) {
     Logger.log('loadSundayCoverage_ error: ' + e.message);
+  }
+  return map;
+}
+
+// ============================================================
+// VA RESPONSIBILITY ATTRIBUTION
+// ============================================================
+
+// Returns the VA who should be held responsible for a given missed/expected day.
+// Rules:
+//   1. US holiday (core VA off) → flex VA on duty (if present and effective)
+//   2. Flex VA off day          → core VA on duty
+//   3. Otherwise                → defaultVA (col A)
+// Sub-account assignments come from the "VA Assignments" tab in COVERAGE_SS_ID.
+function getResponsibleVA_(date, defaultVA, subaccount, offDays, vaAssignments) {
+  const asmt   = vaAssignments.get(subaccount.toLowerCase());
+  const coreVA = asmt && asmt.coreVA ? asmt.coreVA : defaultVA;
+  let   flexVA = asmt && asmt.flexVA ? asmt.flexVA : null;
+
+  // Respect effective-date for mid-period flex transitions (e.g. Jessica from June 5)
+  if (flexVA) {
+    const effDate = FLEX_VA_EFFECTIVE[flexVA.toLowerCase()];
+    if (effDate && midnight_(date) < midnight_(effDate)) flexVA = null;
+  }
+
+  const dateK   = dateKeyPadded_(date);
+  const flexOff = offDays.get(dateK) || new Set();
+
+  if (isUSHoliday_(date)) {
+    // Core VA is off — flex VA covers (if present and effective)
+    if (flexVA && !flexOff.has(flexVA.toLowerCase())) return flexVA;
+  }
+
+  if (flexVA && flexOff.has(flexVA.toLowerCase())) {
+    // Flex VA is off — core VA covers
+    return coreVA;
+  }
+
+  return defaultVA;
+}
+
+// ============================================================
+// VA ASSIGNMENTS  (sub-account → core VA + flex VA)
+// ============================================================
+
+// Reads the "VA Assignments" tab from the coverage spreadsheet.
+// Tab format (row 1 = headers skipped):
+//   Col A: Sub-Account  |  Col B: Core VA  |  Col C: Flex VA
+// Update this tab whenever coverage assignments change.
+function loadVAAssignments_() {
+  const map = new Map();
+  try {
+    const ss    = SpreadsheetApp.openById(COVERAGE_SS_ID);
+    const sheet = ss.getSheetByName('VA Assignments');
+    if (!sheet) {
+      Logger.log('loadVAAssignments_: "VA Assignments" tab not found — all days use col-A VA');
+      return map;
+    }
+    const rows = sheet.getDataRange().getValues();
+    for (let i = 1; i < rows.length; i++) {
+      const sub    = String(rows[i][0] || '').trim();
+      const coreVA = String(rows[i][1] || '').trim();
+      const flexVA = String(rows[i][2] || '').trim();
+      if (sub) map.set(sub.toLowerCase(), { coreVA, flexVA });
+    }
+    Logger.log('loadVAAssignments_: ' + map.size + ' accounts loaded');
+  } catch(e) {
+    Logger.log('loadVAAssignments_ error: ' + e.message);
   }
   return map;
 }
