@@ -154,7 +154,9 @@ function writeBookingRateSheet_(leads, mtdRange, today, tabName) {
       };
       const m = vaMap[l.va];
       m.total++;
-      if (l.bucket === 'booked') m.booked++;
+      // Booked = confirmed status AND the confirmation date (col J) falls in this month.
+      // A lead confirmed in a different month is not counted as booked here.
+      if (l.bucket === 'booked' && inRange_(l.dateConf, mtdRange)) m.booked++;
 
       const isSpecial   = EXCLUDE_CLIENT_HANDLES_ACCTS.includes(l.subaccount);
       const isCancelled = l.bucket === 'cancelled';
