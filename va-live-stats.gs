@@ -42,16 +42,14 @@ const COVERAGE_SS_ID = '1RmLtprnhJxhY7asBbUSPuiahD4H8vbz_dIb42Y__wr0';
 const CALENDAR_API   = 'https://script.google.com/macros/s/AKfycbwQdE3oeV_UWrUr4i5yYo9T_kzTRHKGjx2erFl7OI27d5La1BmUEoRImUE-INyWvVTuJg/exec';
 
 // Source column indices (0-based)
-const COL_VA         = 0;   // A — VA who handled the lead (flex on Sat, core on weekdays)
+const COL_VA         = 0;   // A — VA who handled the lead
 const COL_DATE_IN    = 1;   // B — date lead came in
 const COL_SUBACCOUNT = 2;   // C
 const COL_LEAD_NAME  = 3;   // D
 const COL_STATUS     = 6;   // G
-const COL_CORE_VA    = 7;   // H — core VA for the account
 const COL_DISP       = 8;   // I — disposition
 const COL_DATE_CONF  = 9;   // J — date confirmed
-const COL_FLEX_VA    = 10;  // K — flex VA (Sat/Sun coverage + follow-up)
-const COL_FU1        = 11;  // L–P follow-up slots (5 total)
+const COL_FU1        = 10;  // K–O follow-up note slots (5 total, indices 10–14)
 
 // ============================================================
 // ENTRY POINT
@@ -910,8 +908,6 @@ function loadLeads_() {
 
       leads.push({
         va,
-        coreVA:     String(row[COL_CORE_VA]   || '').trim(),
-        flexVA:     String(row[COL_FLEX_VA]   || '').trim(),
         bucket:     getStatusBucket_(String(row[COL_STATUS] || '')),
         status:     String(row[COL_STATUS]    || '').trim(),
         disp:       String(row[COL_DISP]      || '').trim().toLowerCase(),
