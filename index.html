@@ -457,9 +457,14 @@ function showSv(v){document.getElementById('sav').classList.toggle('on',v)}
 // === SYNC ====================================================================
 async function fullSync(){
   document.getElementById('sb').disabled=true;setSS('ing','Syncing...');
-  try{await Promise.all([syncB(),syncS(),loadR()]);setSS('live',new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));render();renderSide();setReqEmp()}
-  catch(e){console.error(e);setSS('err','Failed');toast('Sync failed: '+e.message,'error')}
-  finally{document.getElementById('sb').disabled=false}
+  let bambooOk=true;
+  try{await syncB()}catch(e){console.warn('BambooHR sync failed (quota?): '+e.message);bambooOk=false}
+  try{await syncS()}catch(e){console.error('Shared entries sync failed: '+e.message)}
+  try{await loadR()}catch(e){console.error('Roster load failed: '+e.message)}
+  setSS(bambooOk?'live':'err',bambooOk?new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'BHR quota hit');
+  render();renderSide();setReqEmp();
+  document.getElementById('sb').disabled=false;
+  if(!bambooOk)toast('BambooHR quota exceeded — showing shared data only. Resets at midnight PT.','error');
 }
 async function syncB(){const s=dk(cY,cM-2,1),eD=new Date(cY,cM+4,0),e=dk(eD.getFullYear(),eD.getMonth(),eD.getDate());const r=await(await fetch(API+'?action=getEvents&start='+s+'&end='+e)).json();if(r.error)throw new Error(r.error);bamboo=r.events||{};ptoByMonth=r.ptoByMonth||{}}
 async function syncS(){const r=await(await fetch(API+'?action=getSharedEntries')).json();if(r.error)throw new Error(r.error);shared=r.entries||{}}
