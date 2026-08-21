@@ -29,7 +29,6 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--font);background:var(--bg);color:var(--tx);line-height:1.5;-webkit-font-smoothing:antialiased}
-
 /* === LOGIN === */
 .login-screen{position:fixed;inset:0;background:var(--charcoal);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px}
 .login-screen.hidden{display:none}
@@ -41,7 +40,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--tx);line-height:1.
 .login-domain{font-size:11px;color:var(--dm);margin-top:20px;letter-spacing:.3px;text-transform:uppercase}
 .login-error{color:var(--red);font-size:13px;margin-top:12px;display:none}
 .login-error.show{display:block}
-
 /* === LAYOUT === */
 .app{max-width:1280px;margin:0 auto;padding:20px 24px}
 .topbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding:16px 20px;background:var(--charcoal);color:#fff;border-radius:var(--rl);margin-bottom:20px}
@@ -63,9 +61,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--tx);line-height:1.
 .topbar button:hover{background:rgba(255,255,255,.08)}
 .topbar .btn-bamboo{background:var(--brand);color:var(--charcoal);border-color:var(--brand);font-weight:600}
 .topbar .btn-bamboo:hover{background:var(--brand-dark)}
-
 .main{display:grid;grid-template-columns:1fr 300px;gap:20px}
-
 /* === CALENDAR === */
 .cal-wrap{display:flex;flex-direction:column;gap:16px}
 .cal-nav{display:flex;align-items:center;justify-content:space-between;background:var(--sf);border:1px solid var(--bd);border-radius:var(--rl);padding:12px 16px}
@@ -86,7 +82,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--tx);line-height:1.
 .cell.we{background:#FEFCF5}.cell.we.om{background:#FAF8F0}
 .cell.bl{background:var(--redbg)}
 .cell.ba{background:#FFF8F5}
-
 .tag{font-size:9px;padding:2px 5px;border-radius:3px;font-weight:600;line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.1px}
 .tag.holiday-flex{background:var(--orangebg);color:var(--orange)}
 .tag.holiday-core{background:var(--purplebg);color:var(--purple)}
@@ -98,24 +93,20 @@ body{font-family:var(--font);background:var(--bg);color:var(--tx);line-height:1.
 .tag.flex-off{background:#F0EDE6;color:var(--mu)}
 .tag.core-off{background:#E8E5DE;color:var(--mu);font-style:italic}
 .tag.adj{background:transparent;color:var(--red);padding:0;font-size:8px;font-style:italic;font-weight:500}
-
 .legend{display:flex;flex-wrap:wrap;gap:10px;padding:10px 14px;background:var(--sf2);border-top:1px solid var(--bd);font-size:11px}
 .legend-i{display:flex;align-items:center;gap:5px;color:var(--mu)}
 .legend-d{width:10px;height:10px;border-radius:3px}
-
 /* === SIDEBAR === */
 .side{display:flex;flex-direction:column;gap:14px}
 .card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--rl);padding:16px;overflow:hidden}
 .card-head{font-size:13px;font-weight:700;color:var(--charcoal);margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;letter-spacing:-.2px}
 .card-head span{font-size:11px;font-weight:500;color:var(--mu)}
 .card-sub{font-size:11px;color:var(--mu);margin-bottom:10px;line-height:1.4}
-
 .mgr-row{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:var(--sf2);border-radius:var(--r);margin-bottom:5px;font-size:12px;font-weight:500}
 .mgr-st{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:.2px}
 .mgr-st.on{background:var(--greenbg);color:var(--green)}
 .mgr-st.off{background:var(--redbg);color:var(--red)}
 .mgr-st.lv{background:var(--orangebg);color:var(--orange)}
-
 /* FLEX GRID */
 .fsg{width:100%;border-collapse:collapse;font-size:11px}
 .fsg th{font-weight:600;padding:5px 3px;text-align:center;color:var(--mu);border-bottom:1px solid var(--bd);font-size:10px;text-transform:uppercase;letter-spacing:.5px}
@@ -134,7 +125,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--tx);line-height:1.
 .btn-sm{font-family:var(--font);font-size:11px;padding:5px 12px;border-radius:var(--r);border:1px solid var(--charcoal);background:var(--charcoal);color:var(--brand);cursor:pointer;font-weight:600;letter-spacing:.2px}
 .btn-sm:hover{background:var(--dark)}
 .btn-sm:disabled{opacity:.4;cursor:not-allowed}
-
 /* === MODAL === */
 .mo{position:fixed;inset:0;background:rgba(28,28,28,.5);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:100;padding:16px}
 .mo.open{display:flex}
@@ -169,12 +159,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--tx);line-height:1.
 .empty{font-size:12px;color:var(--dm);text-align:center;padding:14px;font-style:italic}
 .sav-ov{position:absolute;inset:0;background:rgba(255,255,255,.8);display:none;align-items:center;justify-content:center;z-index:10;border-radius:14px;font-size:13px;color:var(--mu);font-weight:500}
 .sav-ov.on{display:flex}
-
 .toast{position:fixed;bottom:20px;right:20px;background:var(--charcoal);color:var(--brand);padding:12px 20px;border-radius:var(--r);font-size:13px;font-weight:500;z-index:200;opacity:0;transform:translateY(16px);transition:opacity .2s,transform .2s;max-width:360px;box-shadow:0 8px 24px rgba(0,0,0,.2)}
 .toast.show{opacity:1;transform:translateY(0)}
 .toast.error{background:var(--red);color:#fff}
 .toast.success{background:var(--green);color:#fff}
-
 @media(max-width:860px){
   .main{grid-template-columns:1fr}
   .cell{min-height:68px;padding:4px 5px}
@@ -186,7 +174,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--tx);line-height:1.
 </style>
 </head>
 <body>
-
 <div class="login-screen" id="login-screen">
   <div class="login-box">
     <div class="login-logo">Roof<span>Ignite</span></div>
@@ -196,9 +183,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--tx);line-height:1.
     <p class="login-error" id="login-error"></p>
   </div>
 </div>
-
 <div class="app" id="main-app" style="display:none">
-
 <div class="topbar">
   <div class="topbar-left">
     <div class="topbar-logo">Roof<span>Ignite</span></div>
@@ -210,10 +195,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--tx);line-height:1.
     <button class="sign-out" onclick="signOut()">Sign out</button>
     <span class="sync-pill"><span class="sync-dot" id="sd"></span><span id="st"></span></span>
     <button onclick="fullSync()" id="sb">Refresh</button>
+    <button onclick="forceSync()" id="fsb" class="mgr-only" title="Pulls fresh data from BambooHR and updates the sheet cache">Force BHR Sync</button>
     <button class="btn-bamboo" onclick="window.open('https://roofignite.bamboohr.com/calendar','_blank')">BambooHR ↗</button>
   </div>
 </div>
-
 <div class="main">
   <div class="cal-wrap">
     <div class="cal-nav">
@@ -234,7 +219,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--tx);line-height:1.
       </div>
     </div>
   </div>
-
   <div class="side">
     <div class="card mgr-only" id="flex-card">
       <div class="card-head">Flex Schedule <span id="flex-month-label"></span></div>
@@ -254,9 +238,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--tx);line-height:1.
     </div>
   </div>
 </div>
-
 </div>
-
 <!-- MODAL -->
 <div class="mo" id="modal" onclick="if(event.target===this)closeM()">
   <div class="mi">
@@ -290,7 +272,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--tx);line-height:1.
   </div>
 </div>
 <div class="toast" id="toast"></div>
-
 <script>
 const API='https://script.google.com/macros/s/AKfycby6v1uOEmnvwLvnkI_hyilLFccLdOI7pq5N__sKJ_wzXoArSHXW90TEZKaMu3Mk99lE-Q/exec';
 const CID='156950607658-clluep3jm7h3g58e9vlt9khdi508ethc.apps.googleusercontent.com';
@@ -298,10 +279,8 @@ const MO_N=['January','February','March','April','May','June','July','August','S
 const DN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const MGR_PODS=['va manager','director of vas'];
 const CORE_PODS=['core','smm','va manager','director of vas'];
-
 let cY,cM,selKey,bamboo={},shared={},roster={},emailMap={},flexVAs=[],managers=[],flexDirty=false,currentUser=null;
 const now=new Date();cY=now.getFullYear();cM=now.getMonth();
-
 // === AUTH ====================================================================
 function onGsiLoaded(){
   const cred=sessionStorage.getItem('va_cal_cred');
@@ -346,7 +325,6 @@ function showApp(){
 function signOut(){google.accounts.id.disableAutoSelect();sessionStorage.clear();currentUser=null;document.getElementById('main-app').style.display='none';showLogin()}
 function parseJwt(t){try{const b=t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');return JSON.parse(decodeURIComponent(atob(b).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join('')))}catch(e){return null}}
 function showErr(m){const e=document.getElementById('login-error');e.textContent=m;e.classList.add('show')}
-
 // === DATA ====================================================================
 function dk(y,m,d){return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0')}
 function pk(k){const p=k.split('-').map(Number);return new Date(p[0],p[1]-1,p[2])}
@@ -355,12 +333,7 @@ function isHol(k){return ents(k).some(e=>e.type==='holiday-flex'||e.type==='holi
 function isFlexHol(k){return ents(k).some(e=>e.type==='holiday-flex')}
 function isCoreHol(k){return ents(k).some(e=>e.type==='holiday-core')}
 function isBl(k){return ents(k).some(e=>['holiday-flex','holiday-core','blocked-flex','blocked-core','leave','birthday'].includes(e.type))}
-
-// Adjacent check — skips off-days to find real working-day adjacency
-// Core: skip Sat/Sun. Flex: skip their scheduled off days.
-
 function prevWorkingDayCore(y,m,d){
-  // Walk backward skipping Sat(6) and Sun(0)
   let dt=new Date(y,m,d-1);
   for(let i=0;i<5;i++){
     const dow=dt.getDay();
@@ -378,14 +351,12 @@ function nextWorkingDayCore(y,m,d){
   }
   return null;
 }
-
 function prevWorkingDayFlex(y,m,d,vaName){
   let dt=new Date(y,m,d-1);
   for(let i=0;i<5;i++){
     const k=dk(dt.getFullYear(),dt.getMonth(),dt.getDate());
     const offs=flexOffs(k);
     const dow=dt.getDay();
-    // Skip if this is a weekend or the VA's flex off
     if(dow!==0&&dow!==6&&(!vaName||!offs.includes(vaName))) return k;
     dt.setDate(dt.getDate()-1);
   }
@@ -402,10 +373,7 @@ function nextWorkingDayFlex(y,m,d,vaName){
   }
   return null;
 }
-
-// Check if a given date is the working-day-adjacent to a core holiday
 function isAdjCore(y,m,d){
-  // Look at nearby dates for core holidays, then check if this date is their adjacent working day
   for(let offset=-4;offset<=4;offset++){
     if(offset===0) continue;
     const check=new Date(y,m,d+offset);
@@ -419,8 +387,6 @@ function isAdjCore(y,m,d){
   }
   return false;
 }
-
-// Check if a given date is the working-day-adjacent to a flex holiday
 function isAdjFlex(y,m,d){
   for(let offset=-4;offset<=4;offset++){
     if(offset===0) continue;
@@ -435,16 +401,11 @@ function isAdjFlex(y,m,d){
   }
   return false;
 }
-
 function isAdjForUser(y,m,d){
-  // Both core and flex holidays block everyone, so adjacent applies to all
   return isAdjFlex(y,m,d)||isAdjCore(y,m,d);
 }
-
-// ptoByMonth keyed by "employeeId-YYYY-MM" — only PTO (88) and Birthday (89)
 let ptoByMonth = {};
 function vaLvMo(n,y,m){
-  // Look up the employee ID from the roster
   const va = roster[n];
   if (!va || !va.id) return 0;
   const key = va.id + '-' + y + '-' + String(m+1).padStart(2,'0');
@@ -453,23 +414,53 @@ function vaLvMo(n,y,m){
 function flexOffs(k){return ents(k).filter(e=>e.type==='flex-off').map(e=>e.name)}
 function setSS(s,m){document.getElementById('sd').className='sync-dot '+s;document.getElementById('st').textContent=m}
 function showSv(v){document.getElementById('sav').classList.toggle('on',v)}
-
 // === SYNC ====================================================================
 async function fullSync(){
   document.getElementById('sb').disabled=true;setSS('ing','Syncing...');
-  let bambooOk=true;
-  try{await syncB()}catch(e){console.warn('BambooHR sync failed (quota?): '+e.message);bambooOk=false}
+  let ok=true;
+  try{await syncB()}catch(e){console.warn('Event sync failed: '+e.message);ok=false}
   try{await syncS()}catch(e){console.error('Shared entries sync failed: '+e.message)}
   try{await loadR()}catch(e){console.error('Roster load failed: '+e.message)}
-  setSS(bambooOk?'live':'err',bambooOk?new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'BHR quota hit');
+  if(ok){
+    // Show last BHR sync time if available
+    const syncInfo=window._lastSyncInfo||'';
+    setSS('live',syncInfo||new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
+  }else{
+    setSS('err','Sync error');
+  }
   render();renderSide();setReqEmp();
   document.getElementById('sb').disabled=false;
-  if(!bambooOk)toast('BambooHR quota exceeded — showing shared data only. Resets at midnight PT.','error');
 }
-async function syncB(){const s=dk(cY,cM-2,1),eD=new Date(cY,cM+4,0),e=dk(eD.getFullYear(),eD.getMonth(),eD.getDate());const r=await(await fetch(API+'?action=getEvents&start='+s+'&end='+e)).json();if(r.error)throw new Error(r.error);bamboo=r.events||{};ptoByMonth=r.ptoByMonth||{}}
+// syncB now reads from the sheet cache (no BambooHR API call)
+async function syncB(){
+  const s=dk(cY,cM-2,1),eD=new Date(cY,cM+4,0),e=dk(eD.getFullYear(),eD.getMonth(),eD.getDate());
+  const r=await(await fetch(API+'?action=getEvents&start='+s+'&end='+e)).json();
+  if(r.error)throw new Error(r.error);
+  bamboo=r.events||{};
+  ptoByMonth=r.ptoByMonth||{};
+  // Show data source info
+  if(r.lastSync){
+    try{
+      const d=new Date(r.lastSync);
+      window._lastSyncInfo='BHR: '+d.toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    }catch(e){window._lastSyncInfo=''}
+  }
+}
 async function syncS(){const r=await(await fetch(API+'?action=getSharedEntries')).json();if(r.error)throw new Error(r.error);shared=r.entries||{}}
 async function loadR(){const r=await(await fetch(API+'?action=roster')).json();if(r.roster){roster=r.roster;emailMap=r.emailMap||{};flexVAs=r.flexVAs||[];managers=r.managers||[]}}
-
+// Force sync — hits BambooHR API directly and updates the sheet cache
+async function forceSync(){
+  if(!currentUser||!currentUser.isManager)return;
+  const btn=document.getElementById('fsb');btn.disabled=true;btn.textContent='Syncing BHR...';
+  setSS('ing','Live sync...');
+  try{
+    const r=await(await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'forceSync'})})).json();
+    if(r.error)throw new Error(r.error);
+    toast('BambooHR data synced to sheet','success');
+    await fullSync();
+  }catch(e){toast('Force sync failed: '+e.message,'error');setSS('err','Sync failed')}
+  finally{btn.disabled=false;btn.textContent='Force BHR Sync'}
+}
 function setReqEmp(){
   const sel=document.getElementById('req-emp');if(!currentUser)return;
   if(!currentUser.isManager){sel.innerHTML='<option value="'+currentUser.name+'">'+currentUser.name+'</option>';sel.disabled=true}
@@ -481,7 +472,6 @@ function setReqEmp(){
     sel.innerHTML=h}
   const ws=document.getElementById('wk-mgr');let wh='<option value="">None</option>';managers.forEach(n=>wh+='<option>'+n+'</option>');ws.innerHTML=wh;
 }
-
 // === RENDER ==================================================================
 function render(){
   document.getElementById('ml').textContent=MO_N[cM]+' '+cY;
@@ -493,7 +483,6 @@ function render(){
   for(let d=1;d<=dim;d++)cells.push({y:cY,m:cM,d,o:0});
   const rem=(7-(cells.length%7))%7;
   for(let d=1;d<=rem;d++)cells.push({y:cM===11?cY+1:cY,m:cM===11?0:cM+1,d,o:1});
-
   cells.forEach(c=>{
     const k=dk(c.y,c.m,c.d);const en=ents(k);const dow=new Date(c.y,c.m,c.d).getDay();const isWe=dow===0||dow===6;
     const el=document.createElement('div');el.className='cell';
@@ -501,23 +490,19 @@ function render(){
     const bl=isBl(k);const adj=!bl&&isAdjForUser(c.y,c.m,c.d);
     if(bl)el.classList.add('bl');else if(adj)el.classList.add('ba');
     const nm=document.createElement('div');nm.className='cell-num';nm.textContent=c.d;el.appendChild(nm);
-
     const tags=[];
     en.filter(e=>e.type!=='flex-off').forEach(e=>tags.push(e));
     if(isWe)tags.push({type:'core-off',name:'Core/SMM off'});
     const fo=en.filter(e=>e.type==='flex-off').map(e=>e.name);
     if(fo.length)tags.push({type:'flex-off',name:fo.join(', ')+' off'});
-
     tags.slice(0,4).forEach(e=>{const t=document.createElement('div');t.className='tag '+e.type;t.textContent=e.name;el.appendChild(t)});
     if(tags.length>4){const m=document.createElement('div');m.className='tag';m.style.cssText='color:var(--mu);background:transparent';m.textContent='+'+(tags.length-4);el.appendChild(m)}
     if(adj&&!bl&&!tags.length){const a=document.createElement('div');a.className='tag adj';a.textContent='✕ adjacent';el.appendChild(a)}
     el.onclick=()=>openM(c.y,c.m,c.d);grid.appendChild(el);
   });
 }
-
 // === SIDEBAR =================================================================
 function renderSide(){renderFlexGrid();renderWkMgrs();renderMgrLv()}
-
 function renderFlexGrid(){
   document.getElementById('flex-month-label').textContent=MO_N[cM].slice(0,3)+' '+cY;
   const fvs=flexVAs.length?flexVAs:[];
@@ -542,7 +527,6 @@ function renderFlexGrid(){
   document.getElementById('flex-grid').innerHTML=h;
   flexDirty=false;document.getElementById('flex-unsaved').classList.remove('show');document.getElementById('flex-warn').classList.remove('show');
 }
-
 function tglFlex(el){if(!currentUser||!currentUser.isManager)return;el.classList.toggle('on');flexDirty=true;document.getElementById('flex-unsaved').classList.add('show');valFlex()}
 function valFlex(){
   const fvs=flexVAs;const dim=new Date(cY,cM+1,0).getDate();
@@ -553,7 +537,6 @@ function valFlex(){
   fvs.forEach(va=>{weeks.forEach((wk,wi)=>{const c=(om[va]&&om[va][wi])||0;if(c!==2&&wk.length>=2)w.push(va+': '+c+'/2 wk'+(wi+1))})});
   const el=document.getElementById('flex-warn');if(w.length){el.textContent=w.join(' · ');el.classList.add('show')}else el.classList.remove('show');
 }
-
 async function saveFlexMonth(){
   if(!currentUser||!currentUser.isManager)return;
   const btn=document.getElementById('flex-save-btn');btn.disabled=true;btn.textContent='Saving...';
@@ -565,7 +548,6 @@ async function saveFlexMonth(){
     toast('Schedule saved ('+ne.length+' days)','success');await syncS();flexDirty=false;document.getElementById('flex-unsaved').classList.remove('show');render();renderSide();
   }catch(e){toast('Failed: '+e.message,'error')}finally{btn.disabled=false;btn.textContent='Save'}
 }
-
 function renderWkMgrs(){
   const t=new Date();let sat=new Date(t);const dw=t.getDay();
   if(dw===6)sat=new Date(t);else if(dw===0){sat=new Date(t);sat.setDate(t.getDate()-1)}else sat.setDate(t.getDate()+(6-dw));
@@ -577,14 +559,12 @@ function renderWkMgrs(){
     '<div class="mgr-row"><span>Sat</span><span>'+(sm?sm.name:'—')+'</span><span class="mgr-st '+(sm?'on':'off')+'">'+(sm?'On duty':'Unset')+'</span></div>'+
     '<div class="mgr-row"><span>Sun</span><span>'+(um?um.name:'—')+'</span><span class="mgr-st '+(um?'on':'off')+'">'+(um?'On duty':'Unset')+'</span></div>';
 }
-
 function renderMgrLv(){
   document.getElementById('mgr-lv-month').textContent=MO_N[cM].slice(0,3);
   const ml=document.getElementById('mgr-leaves');let h='';
   (managers.length?managers:[]).forEach(n=>{for(const k in bamboo){const d=pk(k);if(d.getFullYear()===cY&&d.getMonth()===cM)bamboo[k].forEach(e=>{if(e.type==='leave'&&e.name&&e.name.toLowerCase().includes(n.toLowerCase()))h+='<div class="mgr-row"><span>'+n+'</span><span class="mgr-st lv">'+d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+'</span></div>'})}});
   ml.innerHTML=h||'<div class="empty">None this month</div>';
 }
-
 // === MODAL ===================================================================
 function openM(y,m,d){
   selKey=dk(y,m,d);const date=new Date(y,m,d);const dow=date.getDay();const isWe=dow===0||dow===6;
@@ -594,7 +574,6 @@ function openM(y,m,d){
   if(isWe&&currentUser&&currentUser.isManager){const mgr=ents(selKey).find(e=>e.type==='weekend-mgr');document.getElementById('wk-mgr').value=mgr?mgr.name:''}
   updStat(y,m,d);rendEnt();stab('req');document.getElementById('modal').classList.add('open');
 }
-
 function updStat(y,m,d){
   const k=dk(y,m,d);const en=ents(k);const el=document.getElementById('mstat');const r=[];
   if(en.some(e=>e.type==='holiday-flex'))r.push('Flex holiday — flex VAs cannot take off');
@@ -603,7 +582,6 @@ function updStat(y,m,d){
   if(en.some(e=>e.type==='blocked-core'))r.push('Core blocked');
   if(en.some(e=>e.type==='leave'))r.push('Leave exists on this day');
   if(en.some(e=>e.type==='birthday'))r.push('Birthday');
-  // Pod-aware adjacent
   if(isAdjFlex(y,m,d)&&!isFlexHol(k))r.push('Adjacent to flex holiday — flex VAs blocked');
   if(isAdjCore(y,m,d)&&!isCoreHol(k))r.push('Adjacent to core holiday — core/SMM/mgrs blocked');
   const capped=[];Object.keys(roster).forEach(va=>{if(vaLvMo(va,y,m)>=1)capped.push(va)});
@@ -611,7 +589,6 @@ function updStat(y,m,d){
   if(!r.length){el.className='mi-status ok';el.innerHTML='✓ Available for leave requests.'}
   else{el.className='mi-status blk';el.innerHTML='✕ '+r.join('<br>✕ ')}
 }
-
 function rendEnt(){
   const list=document.getElementById('elist');const en=ents(selKey);const dow=new Date(pk(selKey)).getDay();const isWe=dow===0||dow===6;const isMgr=currentUser&&currentUser.isManager;
   const display=[];
@@ -625,9 +602,7 @@ function rendEnt(){
     el.innerHTML='<span class="tag '+e.type+'" style="margin:0">'+(lb[e.type]||e.type)+'</span><span class="en-txt">'+e.name+'</span>'+(e.addedBy?'<span style="font-size:9px;color:var(--dm)">'+e.addedBy+'</span>':'')+(src?'<span class="en-src '+src+'">'+(src==='bamboohr'?'BHR':'Shared')+'</span>':'')+(canDel?'<button class="en-del" onclick="delEnt('+e.row+')">✕</button>':'');
     list.appendChild(el)});
 }
-
 function stab(n){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tab===n));document.querySelectorAll('.tc').forEach(t=>t.classList.remove('on'));const tab=document.getElementById('tab-'+n);if(tab)tab.classList.add('on')}
-
 async function submitReq(){
   const emp=document.getElementById('req-emp').value;const end=document.getElementById('req-end').value||selKey;
   if(!emp){toast('Select employee','error');return}
