@@ -310,7 +310,7 @@ function handleCred(r){
 async function loadAndAuth(){try{await loadR();matchUser()}catch(e){showErr('Load failed: '+e.message);document.getElementById('main-app').style.display='none';document.getElementById('login-screen').classList.remove('hidden')}}
 function matchUser(){
   const e=window._pendEmail;
-  if(emailMap[e]){const m=emailMap[e];currentUser={name:m.name,email:e,pod:m.pod,isManager:MGR_PODS.includes(m.pod),picture:window._pendPic}}
+  if(emailMap[e]){const m=emailMap[e];currentUser={name:m.name,email:e,pod:m.pod,isManager:m.isManager||MGR_PODS.includes(m.pod),picture:window._pendPic}}
   else currentUser={name:window._pendName||e.split('@')[0],email:e,pod:'viewer',isManager:false,picture:window._pendPic};
   showApp();
 }
