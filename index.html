@@ -279,7 +279,7 @@ const MO_N=['January','February','March','April','May','June','July','August','S
 const DN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const MGR_PODS=['va manager','director of vas'];
 const CORE_PODS=['core','smm','va manager','director of vas'];
-let cY,cM,selKey,bamboo={},shared={},roster={},emailMap={},flexVAs=[],managers=[],flexDirty=false,currentUser=null;
+let cY,cM,selKey,bamboo={},roster={},emailMap={},flexVAs=[],managers=[],flexDirty=false,currentUser=null;
 const now=new Date();cY=now.getFullYear();cM=now.getMonth();
 // === AUTH ====================================================================
 function onGsiLoaded(){
@@ -328,7 +328,7 @@ function showErr(m){const e=document.getElementById('login-error');e.textContent
 // === DATA ====================================================================
 function dk(y,m,d){return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0')}
 function pk(k){const p=k.split('-').map(Number);return new Date(p[0],p[1]-1,p[2])}
-function ents(k){return[...(bamboo[k]||[]),...(shared[k]||[])]}
+function ents(k){return bamboo[k]||[]}
 function isHol(k){return ents(k).some(e=>e.type==='holiday-flex'||e.type==='holiday-core')}
 function isFlexHol(k){return ents(k).some(e=>e.type==='holiday-flex')}
 function isCoreHol(k){return ents(k).some(e=>e.type==='holiday-core')}
@@ -419,7 +419,6 @@ async function fullSync(){
   document.getElementById('sb').disabled=true;setSS('ing','Syncing...');
   let ok=true;
   try{await syncB()}catch(e){console.warn('Event sync failed: '+e.message);ok=false}
-  try{await syncS()}catch(e){console.error('Shared entries sync failed: '+e.message)}
   try{await loadR()}catch(e){console.error('Roster load failed: '+e.message)}
   if(ok){
     // Show last BHR sync time if available
@@ -446,7 +445,6 @@ async function syncB(){
     }catch(e){window._lastSyncInfo=''}
   }
 }
-async function syncS(){const r=await(await fetch(API+'?action=getSharedEntries')).json();if(r.error)throw new Error(r.error);shared=r.entries||{}}
 async function loadR(){const r=await(await fetch(API+'?action=roster')).json();if(r.roster){roster=r.roster;emailMap=r.emailMap||{};flexVAs=r.flexVAs||[];managers=r.managers||[]}}
 // Force sync — hits BambooHR API directly and updates the sheet cache
 async function forceSync(){
@@ -541,7 +539,7 @@ async function saveFlexMonth(){
   if(!currentUser||!currentUser.isManager)return;
   const btn=document.getElementById('flex-save-btn');btn.disabled=true;btn.textContent='Saving...';
   try{
-    const td=[];for(let d=1;d<=new Date(cY,cM+1,0).getDate();d++){const k=dk(cY,cM,d);(shared[k]||[]).forEach(e=>{if(e.type==='flex-off')td.push(e.row)})}
+    const td=[];for(let d=1;d<=new Date(cY,cM+1,0).getDate();d++){const k=dk(cY,cM,d);(bamboo[k]||[]).forEach(e=>{if(e.type==='flex-off'&&e.row)td.push(e.row)})}
     if(td.length)await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'deleteSharedEntries',rows:td})});
     const ne=[];document.querySelectorAll('.fday.on').forEach(el=>{if(el.dataset.va&&el.dataset.key)ne.push({date:el.dataset.key,type:'flex-off',name:el.dataset.va,addedBy:currentUser.name})});
     if(ne.length)await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'addSharedEntries',entries:ne})});
@@ -621,7 +619,7 @@ async function addEntry(){
 async function setWkMgr(){
   if(!currentUser||!currentUser.isManager)return;
   const mgr=document.getElementById('wk-mgr').value;const btn=document.getElementById('wk-btn');btn.disabled=true;showSv(true);
-  try{const ex=(shared[selKey]||[]).filter(e=>e.type==='weekend-mgr');if(ex.length)await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'deleteSharedEntries',rows:ex.map(e=>e.row)})});
+  try{const ex=(bamboo[selKey]||[]).filter(e=>e.type==='weekend-mgr');if(ex.length)await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'deleteSharedEntries',rows:ex.map(e=>e.row)})});
     if(mgr)await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'addSharedEntry',date:selKey,type:'weekend-mgr',name:mgr,addedBy:currentUser.name})});
     toast(mgr?mgr+' assigned':'Cleared','success');await syncS();refM();render();renderSide()}
   catch(e){toast('Failed: '+e.message,'error')}finally{btn.disabled=false;showSv(false)}
