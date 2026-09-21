@@ -613,7 +613,7 @@ async function addEntry(){
   const type=document.getElementById('add-type').value;const name=document.getElementById('add-name').value.trim();
   if(!name){document.getElementById('add-name').focus();return}
   const btn=document.getElementById('add-btn');btn.disabled=true;showSv(true);
-  try{await(await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'addSharedEntry',date:selKey,type,name,addedBy:currentUser.name})})).json();toast('Saved','success');document.getElementById('add-name').value='';await syncS();refM();render();renderSide()}
+  try{await(await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'addSharedEntry',date:selKey,type,name,addedBy:currentUser.name})})).json();toast('Saved','success');document.getElementById('add-name').value='';await syncB();refM();render();renderSide()}
   catch(e){toast('Failed: '+e.message,'error')}finally{btn.disabled=false;showSv(false)}
 }
 async function setWkMgr(){
@@ -621,12 +621,12 @@ async function setWkMgr(){
   const mgr=document.getElementById('wk-mgr').value;const btn=document.getElementById('wk-btn');btn.disabled=true;showSv(true);
   try{const ex=(bamboo[selKey]||[]).filter(e=>e.type==='weekend-mgr');if(ex.length)await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'deleteSharedEntries',rows:ex.map(e=>e.row)})});
     if(mgr)await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'addSharedEntry',date:selKey,type:'weekend-mgr',name:mgr,addedBy:currentUser.name})});
-    toast(mgr?mgr+' assigned':'Cleared','success');await syncS();refM();render();renderSide()}
+    toast(mgr?mgr+' assigned':'Cleared','success');await syncB();refM();render();renderSide()}
   catch(e){toast('Failed: '+e.message,'error')}finally{btn.disabled=false;showSv(false)}
 }
 async function delEnt(row){
   if(!currentUser||!currentUser.isManager)return;if(!confirm('Remove this entry?'))return;showSv(true);
-  try{await(await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'deleteSharedEntry',row})})).json();toast('Removed','success');await syncS();refM();render();renderSide()}
+  try{await(await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'deleteSharedEntry',row})})).json();toast('Removed','success');await syncB();refM();render();renderSide()}
   catch(e){toast('Failed: '+e.message,'error')}finally{showSv(false)}
 }
 function refM(){const d=pk(selKey);updStat(d.getFullYear(),d.getMonth(),d.getDate());rendEnt()}
