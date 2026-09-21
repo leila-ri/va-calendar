@@ -543,7 +543,7 @@ async function saveFlexMonth(){
     if(td.length)await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'deleteSharedEntries',rows:td})});
     const ne=[];document.querySelectorAll('.fday.on').forEach(el=>{if(el.dataset.va&&el.dataset.key)ne.push({date:el.dataset.key,type:'flex-off',name:el.dataset.va,addedBy:currentUser.name})});
     if(ne.length)await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'addSharedEntries',entries:ne})});
-    toast('Schedule saved ('+ne.length+' days)','success');await syncS();flexDirty=false;document.getElementById('flex-unsaved').classList.remove('show');render();renderSide();
+    toast('Schedule saved ('+ne.length+' days)','success');await syncB();flexDirty=false;document.getElementById('flex-unsaved').classList.remove('show');render();renderSide();
   }catch(e){toast('Failed: '+e.message,'error')}finally{btn.disabled=false;btn.textContent='Save'}
 }
 function renderWkMgrs(){
